@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Temporada — Player Participation</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── SEASON PAGE ── */
+
+    .season-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px 10px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 40;
+    }
+    .sh-info { flex: 1; min-width: 0; }
+    .sh-info h1 { font-size: 18px; font-weight: 800; line-height: 1.1; }
+    .sh-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+    /* Export */
+    .export-wrap { position: relative; flex-shrink: 0; }
+    .export-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 7px 12px;
+      background: var(--accent); border: none;
+      border-radius: var(--radius-sm);
+      color: #fff; font-size: 13px; font-weight: 700;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    .export-dropdown {
+      position: absolute; top: calc(100% + 6px); right: 0;
+      background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: var(--radius-md); min-width: 180px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.4); z-index: 100; overflow: hidden;
+    }
+    .export-dropdown.hidden { display: none; }
+    .export-opt {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px; cursor: pointer; font-size: 13px;
+      transition: background .1s; border: none; background: none;
+      color: var(--text-primary); width: 100%; text-align: left;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .export-opt:hover { background: rgba(255,255,255,.06); }
+    .export-opt + .export-opt { border-top: 1px solid var(--border); }
+
+    /* Game selector */
+    .game-selector { padding: 14px 16px 0; max-width: 700px; margin: 0 auto; }
+    .gs-title {
+      font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .8px;
+      color: var(--text-muted); margin-bottom: 10px;
+    }
+    .gs-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); margin-bottom: 6px;
+      cursor: pointer; transition: border-color .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .gs-row.selected { border-color: var(--accent); }
+    .gs-checkbox { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--accent); }
+    .gs-info { flex: 1; min-width: 0; }
+    .gs-name { font-size: 13px; font-weight: 600; }
+    .gs-meta { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+    .gs-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .gs-count { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+    .status-badge {
+      padding: 2px 7px; border-radius: 4px;
+      font-size: 9px; font-weight: 800; letter-spacing: .4px; text-transform: uppercase;
+    }
+    .status-complete { background: rgba(67,160,71,.15); color: var(--success); }
+    .status-progress { background: rgba(251,140,0,.15); color: var(--warn); }
+    .gs-actions { display: flex; gap: 8px; margin-top: 10px; margin-bottom: 0; }
+
+    /* Summary bar */
+    .summary-bar {
+      padding: 8px 16px;
+      background: rgba(255,255,255,.02);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px; color: var(--text-muted);
+      display: flex; gap: 14px; flex-wrap: wrap;
+      max-width: 700px; margin: 0 auto;
+    }
+    .summary-item strong { color: var(--text-primary); font-weight: 700; }
+
+    /* Filters bar */
+    .filters-bar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 8px 14px;
+      background: var(--bg-panel); border-bottom: 1px solid var(--border);
+      position: sticky; top: 57px; z-index: 30;
+    }
+    .filter-group { display: flex; gap: 0; }
+    .filter-btn {
+      padding: 5px 10px; font-size: 11px; font-weight: 800; letter-spacing: .3px;
+      border: 1px solid var(--border); background: rgba(255,255,255,.04);
+      color: var(--text-muted); cursor: pointer;
+      -webkit-tap-highlight-color: transparent; transition: background .12s, color .12s;
+    }
+    .filter-btn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+    .filter-btn:last-child  { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+    .filter-btn:not(:first-child) { border-left: none; }
+    .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .pos-select {
+      padding: 5px 10px; font-size: 11px; font-weight: 700;
+      background: rgba(255,255,255,.04); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text-muted); width: auto;
+    }
+
+    /* Report body */
+    .report-body { padding: 0 0 16px; max-width: 900px; margin: 0 auto; }
+
+    /* Section cards */
+    .section-card {
+      margin: 12px 12px 0;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); overflow: hidden;
+    }
+    .section-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 14px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-title {
+      font-size: 12px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .6px; color: var(--text-muted); flex: 1;
+    }
+
+    /* Snaps */
+    .snap-bar-wrap { display: flex; align-items: center; gap: 6px; min-width: 70px; }
+    .snap-bar { height: 4px; border-radius: 2px; background: var(--accent); }
+    .snap-pct { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+
+    /* Grade cells */
+    .g-pos  { color: var(--success); font-weight: 700; }
+    .g-neg  { color: var(--danger);  font-weight: 700; }
+    .g-zero { color: var(--text-muted); font-weight: 700; }
+    .g-null { color: rgba(255,255,255,.15); }
+
+    /* Ranking */
+    .rank-badge { font-size: 14px; line-height: 1; }
+    .rank-num { font-size: 11px; font-weight: 800; color: var(--text-muted); min-width: 18px; text-align: center; }
+    tr.rank-row { cursor: pointer; }
+    tr.rank-row.expanded td { background: rgba(30,136,229,.06); }
+
+    /* Chart */
+    .chart-controls {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 8px 14px; border-bottom: 1px solid var(--border);
+    }
+    .chart-canvas-wrap { padding: 12px 14px; height: 280px; position: relative; }
+    .chart-search-wrap { padding: 8px 14px; border-top: 1px solid var(--border); }
+    .chart-player-list {
+      padding: 4px 14px 10px; display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .chart-player-chip {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 9px; border-radius: 14px;
+      border: 1px solid var(--border);
+      font-size: 11px; font-weight: 600; cursor: pointer;
+      background: rgba(255,255,255,.04); color: var(--text-muted);
+      transition: border-color .12s, background .12s;
+    }
+    .chart-player-chip.selected {
+      background: rgba(30,136,229,.15); border-color: var(--accent); color: var(--accent);
+    }
+    .chart-color-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+    /* Mini bar chart */
+    .mini-bar-row {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 14px; font-size: 11px; color: var(--text-muted);
+    }
+    .mini-bar-label { min-width: 48px; white-space: nowrap; font-size: 10px; }
+    .mini-bar-track { flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,.08); }
+    .mini-bar-fill  { height: 100%; border-radius: 3px; transition: width .3s; }
+    .mini-bar-val   { min-width: 36px; text-align: right; font-size: 10px; }
+
+    /* Player detail panel */
+    .player-detail-panel {
+      margin: 8px 12px 0;
+      background: var(--bg-panel); border: 1px solid var(--accent);
+      border-radius: var(--radius-md); overflow: hidden;
+    }
+    .player-detail-panel.hidden { display: none; }
+    .pd-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px; border-bottom: 1px solid var(--border);
+    }
+    .pd-name { font-size: 16px; font-weight: 700; }
+    .pd-pos  { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Sortable */
+    th.sortable { cursor: pointer; user-select: none; -webkit-user-select: none; }
+    th.sortable:hover { color: var(--text-primary); }
+    th.sort-asc::after  { content: ' ↑'; }
+    th.sort-desc::after { content: ' ↓'; }
+
+    /* Empty state */
+    .season-empty {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 3rem 1rem; text-align: center; color: var(--text-muted);
+    }
+    .season-empty-icon { font-size: 40px; opacity: .4; margin-bottom: 12px; }
+    .season-empty-text { font-size: 13px; line-height: 1.7; }
+
+    .toast { bottom: 72px; }
+
+    @media (max-width: 480px) {
+      .section-card { margin: 8px 8px 0; }
+      .chart-canvas-wrap { height: 220px; }
+      .summary-bar { gap: 8px; }
+    }
+
+    @media print {
+      .game-selector, .filters-bar, .nav-bar,
+      .export-wrap, .gs-actions,
+      .chart-controls, .chart-search-wrap, .chart-player-list,
+      .player-detail-panel { display: none !important; }
+      body { background: white; color: black; }
+      .season-header { background: white; border-color: #ddd; color: black; position: static; }
+      .summary-bar { background: white; border-color: #ddd; color: #444; }
+      .section-card { border-color: #ddd; background: white; break-inside: avoid; margin: 12px 0 0; }
+      .section-head { border-color: #ddd; }
+      .section-title { color: #555; }
+      td, th { color: black; border-color: #ddd; }
+      .g-pos { color: #2e7d32; } .g-neg { color: #c62828; }
+      .snap-bar { background: #2e7d32; }
+      canvas { max-width: 100%; }
+      .page-break { page-break-before: always; }
+    }
+  </style>
+</head>
+<body>
+<script src="app.js"></script>
+
+<!-- ══════════════════════════════════
+     HEADER
+══════════════════════════════════ -->
+<header class="season-header">
+  <div class="sh-info">
+    <h1>Temporada</h1>
+    <div class="sh-sub" id="sh-sub">—</div>
+  </div>
+  <div class="export-wrap">
+    <button class="export-btn" onclick="toggleExportMenu()">Exportar ▾</button>
+    <div class="export-dropdown hidden" id="export-dropdown">
+      <button class="export-opt" onclick="exportPDF()">🖨 PDF / Imprimir</button>
+      <button class="export-opt" onclick="exportSeasonCSV()">📄 CSV Agregado</button>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════
+     MAIN
+══════════════════════════════════ -->
+<main class="page-content" id="main-content">
+
+  <!-- Game selector -->
+  <div class="game-selector" id="game-selector-wrap">
+    <div class="gs-title">Selecciona los partidos a incluir</div>
+    <div id="game-selector-list"></div>
+    <div class="gs-actions">
+      <button class="btn btn-ghost btn-sm" onclick="selectAllGames()">Seleccionar todos</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearAllGames()">Limpiar</button>
+    </div>
+  </div>
+
+  <!-- Summary bar -->
+  <div class="summary-bar">
+    <span class="summary-item"><strong id="sum-games">0</strong> partidos</span>
+    <span class="summary-item"><strong id="sum-plays">0</strong> jugadas</span>
+    <span class="summary-item"><strong id="sum-players">0</strong> jugadores activos</span>
+  </div>
+
+  <!-- Filters bar -->
+  <div class="filters-bar">
+    <div class="filter-group" id="unit-filter-group">
+      <button class="filter-btn active" data-unit="all"  onclick="setUnit('all')">Todos</button>
+      <button class="filter-btn"        data-unit="OFE"  onclick="setUnit('OFE')">OFE</button>
+      <button class="filter-btn"        data-unit="DEF"  onclick="setUnit('DEF')">DEF</button>
+      <button class="filter-btn"        data-unit="ST"   onclick="setUnit('ST')">ST</button>
+    </div>
+    <select class="pos-select" id="pos-filter" onchange="setPosition(this.value)">
+      <option value="all">Todas las posiciones</option>
+    </select>
+  </div>
+
+  <!-- Report sections (rendered by JS) -->
+  <div class="report-body" id="report-body"></div>
+
+</main>
+
+<!-- ══════════════════════════════════
+     NAV BAR
+══════════════════════════════════ -->
+<nav class="nav-bar">
+  <button class="nav-tab" onclick="location.href='index.html'">
+    <span class="nav-icon">📋</span>PARTIDOS
+  </button>
+  <button class="nav-tab" onclick="location.href='roster.html'">
+    <span class="nav-icon">👥</span>ROSTER
+  </button>
+  <button class="nav-tab" onclick="location.href='formations.html'">
+    <span class="nav-icon">🏈</span>FORMACIONES
+  </button>
+  <button class="nav-tab" onclick="goCampo()">
+    <span class="nav-icon">📐</span>CAMPO
+  </button>
+  <button class="nav-tab" onclick="goReport()">
+    <span class="nav-icon">📊</span>REPORTE
+  </button>
+  <button class="nav-tab active">
+    <span class="nav-icon">📈</span>TEMPORADA
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════ */
+let allGames        = [];
+let selectedGameIds = new Set();
+let activeUnit      = 'all';
+let activePosition  = 'all';
+let chartInstance   = null;
+let expandedPlayerId = null;
+let chartMode       = 'top5';   // 'top5' | 'top10' | 'custom'
+let chartPlayerIds  = new Set();
+let snapsSortKey    = 'totalSnaps';
+let snapsSortDir    = 'desc';
+
+const CHART_COLORS = [
+  '#1e88e5','#43a047','#fb8c00','#e53935',
+  '#8e24aa','#00acc1','#f4511e','#6d4c41'
+];
+
+const GRADE_CATS = [
+  { key: 'asignacion', label: 'Asig'  },
+  { key: 'ejecucion',  label: 'Ejec'  },
+  { key: 'decision',   label: 'Decis' },
+  { key: 'impacto',    label: 'Imp'   },
+  { key: 'disciplina', label: 'Disc'  },
+];
+
+/* ═══════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  allGames = getGames().sort((a, b) => {
+    if (!a.date && !b.date) return 0;
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    return new Date(b.date) - new Date(a.date);
+  });
+
+  allGames.forEach(g => selectedGameIds.add(g.id));
+
+  const teamName = localStorage.getItem('pp_team_name') || '';
+  document.getElementById('sh-sub').textContent = teamName || 'Sin equipo configurado';
+
+  renderGameSelector();
+  populatePositionFilter();
+  renderSummaryBar();
+  renderReport();
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.export-wrap')) {
+      document.getElementById('export-dropdown').classList.add('hidden');
+    }
+  });
+});
+
+function goCampo() {
+  const game = getCurrentGame();
+  if (game) location.href = `grade.html?game=${game.id}`;
+  else { const gs = getGames(); if (gs.length) location.href = `grade.html?game=${gs[0].id}`; }
+}
+
+function goReport() {
+  const game = getCurrentGame();
+  if (game) location.href = `report.html?game=${game.id}`;
+  else { const gs = getGames(); if (gs.length) location.href = `report.html?game=${gs[0].id}`; }
+}
+
+/* ═══════════════════════════════════════════════════
+   GAME SELECTOR
+═══════════════════════════════════════════════════ */
+function renderGameSelector() {
+  const list = document.getElementById('game-selector-list');
+  const teamName = localStorage.getItem('pp_team_name') || 'Local';
+
+  if (!allGames.length) {
+    list.innerHTML = `
+      <div class="season-empty">
+        <div class="season-empty-icon">📋</div>
+        <div class="season-empty-text">No hay partidos guardados.<br>Ve a Partidos para crear uno.</div>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = allGames.map(g => {
+    const plays     = getPlays(g.id);
+    const selected  = selectedGameIds.has(g.id);
+    const hasData   = plays.some(p => Object.keys(p.lineup || {}).length > 0);
+    const dateStr   = g.date ? formatDate(g.date) : 'Sin fecha';
+    const fullName  = g.opponent ? `${teamName} vs ${g.opponent}` : g.name;
+
+    return `
+      <div class="gs-row${selected ? ' selected' : ''}" onclick="toggleGame('${g.id}')">
+        <input type="checkbox" class="gs-checkbox" ${selected ? 'checked' : ''}
+               onclick="event.stopPropagation()" onchange="toggleGame('${g.id}')">
+        <div class="gs-info">
+          <div class="gs-name">${esc(fullName)}</div>
+          <div class="gs-meta">${esc(dateStr)}</div>
+        </div>
+        <div class="gs-right">
+          <span class="gs-count">${plays.length} jugadas</span>
+          <span class="status-badge ${hasData ? 'status-complete' : 'status-progress'}">
+            ${hasData ? 'con datos' : 'sin datos'}
+          </span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleGame(id) {
+  if (selectedGameIds.has(id)) {
+    if (selectedGameIds.size === 1) { showToast('Debe quedar al menos 1 partido'); return; }
+    selectedGameIds.delete(id);
+  } else {
+    selectedGameIds.add(id);
+  }
+  renderGameSelector();
+  renderSummaryBar();
+  renderReport();
+}
+
+function selectAllGames() {
+  allGames.forEach(g => selectedGameIds.add(g.id));
+  renderGameSelector(); renderSummaryBar(); renderReport();
+}
+
+function clearAllGames() {
+  selectedGameIds.clear();
+  if (allGames.length) selectedGameIds.add(allGames[0].id);
+  renderGameSelector(); renderSummaryBar(); renderReport();
+}
+
+/* ═══════════════════════════════════════════════════
+   FILTERS
+═══════════════════════════════════════════════════ */
+function setUnit(unit) {
+  activeUnit = unit;
+  document.querySelectorAll('#unit-filter-group .filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.unit === unit);
+  });
+  activePosition = 'all';
+  populatePositionFilter();
+  renderSummaryBar();
+  renderReport();
+}
+
+function setPosition(pos) {
+  activePosition = pos;
+  renderSummaryBar();
+  renderReport();
+}
+
+function populatePositionFilter() {
+  const sel    = document.getElementById('pos-filter');
+  const roster = getRoster().filter(p => activeUnit === 'all' || p.unit === activeUnit);
+  const positions = [...new Set(roster.map(p => p.position).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="all">Todas las posiciones</option>' +
+    positions.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
+  sel.value = 'all';
+}
+
+/* ═══════════════════════════════════════════════════
+   SUMMARY BAR
+═══════════════════════════════════════════════════ */
+function renderSummaryBar() {
+  const games = getSelectedGames();
+  let totalPlays = 0;
+  games.forEach(g => {
+    totalPlays += getFilteredPlays(g.id).length;
+  });
+  const players = getActivePlayersAcrossGames();
+  document.getElementById('sum-games').textContent   = games.length;
+  document.getElementById('sum-plays').textContent   = totalPlays;
+  document.getElementById('sum-players').textContent = players.length;
+}
+
+/* ═══════════════════════════════════════════════════
+   CORE DATA FUNCTIONS
+═══════════════════════════════════════════════════ */
+function getSelectedGames() {
+  return allGames
+    .filter(g => selectedGameIds.has(g.id))
+    .sort((a, b) => {
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return new Date(a.date) - new Date(b.date);
+    });
+}
+
+function getFilteredPlays(gameId) {
+  return getPlays(gameId).filter(p =>
+    activeUnit === 'all' || p.unit === activeUnit
+  );
+}
+
+function getPlayerSnaps(playerId, gameId) {
+  return getFilteredPlays(gameId)
+    .filter(p => Object.values(p.lineup || {}).includes(playerId))
+    .length;
+}
+
+function getPlayerAvgGrade(playerId, gameId) {
+  const plays = getFilteredPlays(gameId);
+  const perPlay = [];
+  plays.forEach(p => {
+    const g = p.grades?.[playerId];
+    if (!g) return;
+    const vals = GRADE_CATS.map(c => g[c.key]).filter(v => v !== undefined && v !== null);
+    if (vals.length) perPlay.push(vals.reduce((a, b) => a + b, 0) / vals.length);
+  });
+  if (!perPlay.length) return null;
+  return Math.round((perPlay.reduce((a, b) => a + b, 0) / perPlay.length) * 10) / 10;
+}
+
+function getPlayerCatAvg(playerId, gameId, catKey) {
+  const vals = [];
+  getFilteredPlays(gameId).forEach(p => {
+    const g = p.grades?.[playerId];
+    if (!g || g[catKey] === undefined || g[catKey] === null) return;
+    vals.push(g[catKey]);
+  });
+  if (!vals.length) return null;
+  return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
+}
+
+function getActivePlayersAcrossGames() {
+  const roster = getRoster().filter(p => {
+    if (activeUnit !== 'all' && p.unit !== activeUnit) return false;
+    if (activePosition !== 'all' && p.position !== activePosition) return false;
+    return true;
+  });
+  const games = getSelectedGames();
+
+  return roster.map(p => {
+    const snapsByGame  = games.map(g => getPlayerSnaps(p.id, g.id));
+    const gradesByGame = games.map(g => getPlayerAvgGrade(p.id, g.id));
+    const totalSnaps   = snapsByGame.reduce((a, b) => a + b, 0);
+    const validGrades  = gradesByGame.filter(v => v !== null);
+    const avgGrade     = validGrades.length
+      ? Math.round((validGrades.reduce((a, b) => a + b, 0) / validGrades.length) * 10) / 10
+      : null;
+
+    const catAvgs = {};
+    GRADE_CATS.forEach(cat => {
+      const vals = games.map(g => getPlayerCatAvg(p.id, g.id, cat.key)).filter(v => v !== null);
+      catAvgs[cat.key] = vals.length
+        ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10
+        : null;
+    });
+
+    return { ...p, totalSnaps, snapsByGame, gradesByGame, avgGrade, catAvgs };
+  }).filter(p => p.totalSnaps > 0);
+}
+
+/* ═══════════════════════════════════════════════════
+   RENDER REPORT (orchestrator)
+═══════════════════════════════════════════════════ */
+function renderReport() {
+  const games   = getSelectedGames();
+  const players = getActivePlayersAcrossGames();
+  const body    = document.getElementById('report-body');
+
+  if (!games.length) {
+    body.innerHTML = `<div class="season-empty"><div class="season-empty-icon">📊</div><div class="season-empty-text">Selecciona al menos un partido</div></div>`;
+    return;
+  }
+  if (!players.length) {
+    body.innerHTML = `<div class="season-empty"><div class="season-empty-icon">🏈</div><div class="season-empty-text">Sin jugadores con participación<br>en los partidos seleccionados</div></div>`;
+    return;
+  }
+
+  body.innerHTML = `
+    <div id="section-a"></div>
+    <div id="section-b"></div>
+    <div id="section-e" class="player-detail-panel hidden"></div>
+    <div id="section-c"></div>
+    <div id="section-d"></div>
+  `;
+
+  renderSnapsTable(games, players);
+  renderRankingTable(games, players);
+  renderTrendChart(games, players);
+  renderPositionComparison(games);
+}
+
+/* ═══════════════════════════════════════════════════
+   SECTION A — SNAPS TABLE
+═══════════════════════════════════════════════════ */
+function renderSnapsTable(games, players) {
+  const playsPerGame = games.map(g => getFilteredPlays(g.id).length);
+  const totalPlays   = playsPerGame.reduce((a, b) => a + b, 0);
+  const maxSnaps     = Math.max(...players.map(p => p.totalSnaps), 1);
+
+  const sorted = sortSnapPlayers([...players]);
+
+  const gameHeaders = games.map(g =>
+    `<th style="text-align:center">${esc(g.opponent || g.name)}</th>`
+  ).join('');
+
+  const rows = sorted.map(p => buildSnapsRow(p, games, playsPerGame, totalPlays, maxSnaps)).join('');
+
+  document.getElementById('section-a').innerHTML = `
+    <div class="section-card">
+      <div class="section-head">
+        <span class="section-title">Snaps acumulados</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="sortable${snapsSortKey==='name'?' sort-'+snapsSortDir:''}"
+                  onclick="changeSnapsSort('name')">Jugador</th>
+              <th>Pos</th>
+              <th class="sortable${snapsSortKey==='totalSnaps'?' sort-'+snapsSortDir:''}"
+                  style="text-align:center" onclick="changeSnapsSort('totalSnaps')">Total</th>
+              ${gameHeaders}
+              <th>% Part</th>
+            </tr>
+          </thead>
+          <tbody id="snaps-tbody">${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function buildSnapsRow(p, games, playsPerGame, totalPlays, maxSnaps) {
+  const pct    = totalPlays > 0 ? Math.round((p.totalSnaps / totalPlays) * 100) : 0;
+  const barPct = maxSnaps  > 0 ? Math.round((p.totalSnaps / maxSnaps)   * 80)  : 0;
+  const bgA    = (maxSnaps > 0 ? (p.totalSnaps / maxSnaps) * 0.18 : 0).toFixed(2);
+
+  const gameCells = games.map((g, i) => {
+    const s = p.snapsByGame[i] || 0;
+    if (!s) return `<td style="text-align:center;color:rgba(255,255,255,.2)">—</td>`;
+    const cellA = (playsPerGame[i] > 0 ? (s / playsPerGame[i]) * 0.32 : 0).toFixed(2);
+    return `<td style="text-align:center;background:rgba(67,160,71,${cellA})">${s}</td>`;
+  }).join('');
+
+  return `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--text-muted);min-width:26px">#${esc(p.number)}</span>
+          <span style="font-size:13px;font-weight:600">${esc(p.name)}</span>
+        </div>
+      </td>
+      <td style="font-size:11px;color:var(--text-muted)">${esc(p.position || '—')}</td>
+      <td style="text-align:center;background:rgba(67,160,71,${bgA})"><strong>${p.totalSnaps}</strong></td>
+      ${gameCells}
+      <td>
+        <div class="snap-bar-wrap">
+          <div class="snap-bar" style="width:${barPct}px"></div>
+          <span class="snap-pct">${pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+}
+
+function sortSnapPlayers(players) {
+  return players.sort((a, b) => {
+    let av, bv;
+    if (snapsSortKey === 'name') { av = a.name; bv = b.name; }
+    else                         { av = a.totalSnaps; bv = b.totalSnaps; }
+    if (typeof av === 'string') {
+      return snapsSortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    }
+    return snapsSortDir === 'asc' ? av - bv : bv - av;
+  });
+}
+
+function changeSnapsSort(key) {
+  if (snapsSortKey === key) snapsSortDir = snapsSortDir === 'desc' ? 'asc' : 'desc';
+  else { snapsSortKey = key; snapsSortDir = key === 'name' ? 'asc' : 'desc'; }
+  const games   = getSelectedGames();
+  const players = getActivePlayersAcrossGames();
+  renderSnapsTable(games, players);
+}
+
+/* ═══════════════════════════════════════════════════
+   SECTION B — RANKING
+═══════════════════════════════════════════════════ */
+function renderRankingTable(games, players) {
+  const ranked = [...players]
+    .filter(p => p.avgGrade !== null)
+    .sort((a, b) => (b.avgGrade ?? -99) - (a.avgGrade ?? -99));
+
+  const medals    = ['🥇', '🥈', '🥉'];
+  const catHeaders = GRADE_CATS.map(c =>
+    `<th style="text-align:center;min-width:44px">${c.label}</th>`).join('');
+
+  const rows = ranked.map((p, i) => {
+    const catCells = GRADE_CATS.map(cat =>
+      `<td style="text-align:center">${gradeCell(p.catAvgs[cat.key])}</td>`
+    ).join('');
+    const isExpanded = expandedPlayerId === p.id;
+    return `
+      <tr class="rank-row${isExpanded ? ' expanded' : ''}" onclick="togglePlayerDetail('${p.id}')">
+        <td>
+          <div style="display:flex;align-items:center;gap:4px">
+            ${i < 3 ? `<span class="rank-badge">${medals[i]}</span>` : ''}
+            <span class="rank-num">${i + 1}</span>
+          </div>
+        </td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:var(--text-muted)">#${esc(p.number)}</span>
+            <span style="font-size:13px;font-weight:600">${esc(p.name)}</span>
+          </div>
+        </td>
+        <td style="font-size:11px;color:var(--text-muted)">${esc(p.position || '—')}</td>
+        <td style="text-align:center;font-size:15px;font-weight:800">${gradeCell(p.avgGrade)}</td>
+        ${catCells}
+      </tr>`;
+  }).join('');
+
+  const noGrades = players.filter(p => p.avgGrade === null).length;
+
+  document.getElementById('section-b').innerHTML = `
+    <div class="section-card" style="margin-top:12px">
+      <div class="section-head">
+        <span class="section-title">Ranking por grade</span>
+        <span style="font-size:10px;color:var(--text-muted)">Toca un jugador para ver detalle</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Jugador</th>
+              <th>Pos</th>
+              <th style="text-align:center">Grade</th>
+              ${catHeaders}
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || `<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-muted)">Sin grades registrados</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+      ${noGrades ? `<div style="padding:8px 14px;font-size:11px;color:var(--text-muted)">${noGrades} jugador(es) sin grades no aparecen en el ranking</div>` : ''}
+    </div>`;
+}
+
+function gradeCell(v) {
+  if (v === null || v === undefined) return `<span class="g-null">—</span>`;
+  const sign = v > 0 ? '+' : '';
+  const cls  = v > 0 ? 'g-pos' : v < 0 ? 'g-neg' : 'g-zero';
+  return `<span class="${cls}">${sign}${v.toFixed(1)}</span>`;
+}
+
+/* ═══════════════════════════════════════════════════
+   SECTION E — PLAYER DETAIL
+═══════════════════════════════════════════════════ */
+function togglePlayerDetail(playerId) {
+  const panel = document.getElementById('section-e');
+  if (!panel) return;
+
+  if (expandedPlayerId === playerId) {
+    expandedPlayerId = null;
+    panel.classList.add('hidden');
+    panel.innerHTML = '';
+  } else {
+    expandedPlayerId = playerId;
+    renderPlayerDetail(playerId);
+  }
+
+  // Refresh ranking rows to update expanded highlight
+  const games   = getSelectedGames();
+  const players = getActivePlayersAcrossGames();
+  renderRankingTable(games, players);
+}
+
+function renderPlayerDetail(playerId) {
+  const panel   = document.getElementById('section-e');
+  const games   = getSelectedGames();
+  const players = getActivePlayersAcrossGames();
+  const player  = players.find(p => p.id === playerId);
+  if (!player || !panel) return;
+
+  panel.classList.remove('hidden');
+
+  const playsPerGame  = games.map(g => getFilteredPlays(g.id).length);
+  const totalAllPlays = playsPerGame.reduce((a, b) => a + b, 0);
+  const gameHeaders   = games.map(g =>
+    `<th style="text-align:center;min-width:56px">${esc(g.opponent || g.name)}</th>`
+  ).join('');
+
+  const snapsRow = `<tr>
+    <td style="color:var(--text-muted);font-size:12px">Snaps</td>
+    ${games.map((g, i) => `<td style="text-align:center">${player.snapsByGame[i] || '—'}</td>`).join('')}
+    <td style="text-align:center;font-weight:700">${player.totalSnaps}</td>
+  </tr>`;
+
+  const pctRow = `<tr>
+    <td style="color:var(--text-muted);font-size:12px">% Part</td>
+    ${games.map((g, i) => {
+      const tp = playsPerGame[i];
+      const s  = player.snapsByGame[i] || 0;
+      return `<td style="text-align:center;font-size:12px;color:var(--text-muted)">${tp > 0 ? Math.round(s / tp * 100) + '%' : '—'}</td>`;
+    }).join('')}
+    <td style="text-align:center;font-size:12px;color:var(--text-muted)">${totalAllPlays > 0 ? Math.round(player.totalSnaps / totalAllPlays * 100) + '%' : '—'}</td>
+  </tr>`;
+
+  const divRow = `<tr><td colspan="${games.length + 2}" style="padding:0;height:1px;background:var(--border)"></td></tr>`;
+
+  const catRows = GRADE_CATS.map(cat => `
+    <tr>
+      <td style="color:var(--text-muted);font-size:12px">${cat.label}</td>
+      ${games.map((g, i) => `<td style="text-align:center">${gradeCell(getPlayerCatAvg(playerId, g.id, cat.key))}</td>`).join('')}
+      <td style="text-align:center">${gradeCell(player.catAvgs[cat.key])}</td>
+    </tr>`).join('');
+
+  const totalRow = `<tr style="border-top:1px solid var(--border)">
+    <td style="font-weight:700;font-size:12px">TOTAL</td>
+    ${games.map((g, i) => `<td style="text-align:center">${gradeCell(player.gradesByGame[i])}</td>`).join('')}
+    <td style="text-align:center">${gradeCell(player.avgGrade)}</td>
+  </tr>`;
+
+  // Mini CSS bar chart for grade trend
+  const validGrades  = player.gradesByGame.filter(v => v !== null);
+  const maxAbs       = Math.max(...validGrades.map(Math.abs), 0.1);
+  const miniChart    = validGrades.length ? `
+    <div style="padding:10px 14px 6px;border-top:1px solid var(--border)">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:6px">Grade por partido</div>
+      ${games.map((g, i) => {
+        const v = player.gradesByGame[i];
+        if (v === null) return '';
+        const pct   = Math.abs(v) / maxAbs * 100;
+        const color = v > 0 ? 'var(--success)' : v < 0 ? 'var(--danger)' : 'var(--text-muted)';
+        return `
+          <div class="mini-bar-row">
+            <span class="mini-bar-label">${esc(g.opponent || g.name)}</span>
+            <div class="mini-bar-track">
+              <div class="mini-bar-fill" style="width:${pct}%;background:${color}"></div>
+            </div>
+            <span class="mini-bar-val">${gradeCell(v)}</span>
+          </div>`;
+      }).join('')}
+    </div>` : '';
+
+  panel.innerHTML = `
+    <div class="pd-header">
+      <div>
+        <div class="pd-name">#${esc(player.number)} ${esc(player.name)}</div>
+        <div class="pd-pos">${esc(player.position || '')} · ${esc(getUnitLabel(player.unit || ''))}</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost btn-sm"
+                onclick="togglePlayerDetail('${player.id}')">Cerrar ✕</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            ${gameHeaders}
+            <th style="text-align:center">Prom</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${snapsRow}
+          ${pctRow}
+          ${divRow}
+          ${catRows}
+          ${totalRow}
+        </tbody>
+      </table>
+    </div>
+    ${miniChart}`;
+}
+
+/* ═══════════════════════════════════════════════════
+   SECTION C — TREND CHART
+═══════════════════════════════════════════════════ */
+function renderTrendChart(games, players) {
+  const el = document.getElementById('section-c');
+
+  el.innerHTML = `
+    <div class="section-card" style="margin-top:12px">
+      <div class="section-head">
+        <span class="section-title">Tendencia por partido</span>
+      </div>
+      <div class="chart-controls">
+        <div class="filter-group">
+          <button class="filter-btn${chartMode==='top5'?' active':''}"   onclick="setChartMode('top5')">Top 5</button>
+          <button class="filter-btn${chartMode==='top10'?' active':''}"  onclick="setChartMode('top10')">Top 10</button>
+          <button class="filter-btn${chartMode==='custom'?' active':''}" onclick="setChartMode('custom')">Elegir</button>
+        </div>
+        <span style="font-size:11px;color:var(--text-muted)">Máx. 8 jugadores</span>
+      </div>
+      ${chartMode === 'custom' ? `
+        <div class="chart-search-wrap">
+          <input type="search" id="chart-search" placeholder="🔍 Buscar jugador..."
+                 oninput="filterChartPlayers(this.value)" style="font-size:13px">
+        </div>
+        <div class="chart-player-list" id="chart-player-list"></div>
+      ` : ''}
+      <div class="chart-canvas-wrap">
+        <canvas id="trend-chart"></canvas>
+      </div>
+    </div>`;
+
+  if (chartMode === 'custom') renderChartPlayerList(players, '');
+  buildChart(games, players);
+}
+
+function setChartMode(mode) {
+  chartMode = mode;
+  if (mode !== 'custom') chartPlayerIds.clear();
+  const games   = getSelectedGames();
+  const players = getActivePlayersAcrossGames();
+  renderTrendChart(games, players);
+}
+
+function filterChartPlayers(query) {
+  renderChartPlayerList(getActivePlayersAcrossGames(), query);
+}
+
+function renderChartPlayerList(players, query) {
+  const list = document.getElementById('chart-player-list');
+  if (!list) return;
+  const q        = query.toLowerCase().trim();
+  const filtered = players.filter(p =>
+    !q || p.name.toLowerCase().includes(q) || String(p.number).includes(q)
+  );
+  const selectedArr = [...chartPlayerIds];
+  list.innerHTML = filtered.map(p => {
+    const selected  = chartPlayerIds.has(p.id);
+    const colorIdx  = selectedArr.indexOf(p.id);
+    const dotColor  = selected && colorIdx >= 0
+      ? CHART_COLORS[colorIdx % CHART_COLORS.length]
+      : 'rgba(255,255,255,.15)';
+    return `
+      <div class="chart-player-chip${selected ? ' selected' : ''}" onclick="toggleChartPlayer('${p.id}')">
+        <div class="chart-color-dot" style="background:${dotColor}"></div>
+        #${esc(p.number)} ${esc(p.name)}
+        <span style="font-size:10px;color:var(--text-muted);margin-left:2px">${esc(p.position || '')}</span>
+      </div>`;
+  }).join('');
+}
+
+function toggleChartPlayer(playerId) {
+  if (chartPlayerIds.has(playerId)) {
+    chartPlayerIds.delete(playerId);
+  } else if (chartPlayerIds.size < 8) {
+    chartPlayerIds.add(playerId);
+  } else {
+    showToast('Máximo 8 jugadores en la gráfica');
+    return;
+  }
+  const games   = getSelectedGames();
+  const players = getActivePlayersAcrossGames();
+  const q       = document.getElementById('chart-search')?.value || '';
+  renderChartPlayerList(players, q);
+  buildChart(games, players);
+}
+
+function buildChart(games, allPlayers) {
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+  const canvas = document.getElementById('trend-chart');
+  if (!canvas) return;
+
+  let chartPlayers;
+  if (chartMode === 'top5') {
+    chartPlayers = [...allPlayers]
+      .filter(p => p.avgGrade !== null)
+      .sort((a, b) => (b.avgGrade ?? -99) - (a.avgGrade ?? -99))
+      .slice(0, 5);
+  } else if (chartMode === 'top10') {
+    chartPlayers = [...allPlayers]
+      .filter(p => p.avgGrade !== null)
+      .sort((a, b) => (b.avgGrade ?? -99) - (a.avgGrade ?? -99))
+      .slice(0, 10);
+  } else {
+    chartPlayers = allPlayers.filter(p => chartPlayerIds.has(p.id));
+  }
+
+  if (!chartPlayers.length) return;
+
+  // Inline plugin: zero reference line
+  const zeroLinePlugin = {
+    id: 'zeroLine',
+    afterDraw(chart) {
+      const { ctx: c, scales: { y } } = chart;
+      if (!y) return;
+      const yZero = y.getPixelForValue(0);
+      c.save();
+      c.beginPath();
+      c.setLineDash([4, 4]);
+      c.strokeStyle = 'rgba(255,255,255,0.2)';
+      c.lineWidth = 1;
+      c.moveTo(chart.chartArea.left, yZero);
+      c.lineTo(chart.chartArea.right, yZero);
+      c.stroke();
+      c.restore();
+    }
+  };
+
+  chartInstance = new Chart(canvas, {
+    type: 'line',
+    plugins: [zeroLinePlugin],
+    data: {
+      labels: games.map(g => g.opponent || g.name),
+      datasets: chartPlayers.map((p, i) => ({
+        label: `#${p.number} ${p.name}`,
+        data: games.map(g => getPlayerAvgGrade(p.id, g.id)),
+        borderColor: CHART_COLORS[i % CHART_COLORS.length],
+        backgroundColor: 'transparent',
+        tension: 0.3,
+        spanGaps: false,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+      }))
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          min: -2, max: 2,
+          grid: { color: 'rgba(255,255,255,0.08)' },
+          ticks: { color: '#8a8fa8' }
+        },
+        x: {
+          grid: { color: 'rgba(255,255,255,0.08)' },
+          ticks: { color: '#8a8fa8' }
+        }
+      },
+      plugins: {
+        legend: { labels: { color: '#f0f0f0', boxWidth: 12 } },
+        tooltip: {
+          callbacks: {
+            label: item => {
+              const v = item.raw;
+              const sign = v !== null && v > 0 ? '+' : '';
+              return ` ${item.dataset.label}: ${v !== null ? sign + v : '—'}`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════
+   SECTION D — POSITION COMPARISON
+═══════════════════════════════════════════════════ */
+function renderPositionComparison(games) {
+  // Build posLabel → gameId → { playerId: snapCount }
+  const posMap = {};
+
+  games.forEach(g => {
+    getFilteredPlays(g.id).forEach(play => {
+      const template = play.formation ? getFormationByName(play.formation) : null;
+      Object.entries(play.lineup || {}).forEach(([posId, playerId]) => {
+        const label = template?.positions.find(pos => pos.id === posId)?.label || posId;
+        if (!posMap[label])        posMap[label] = {};
+        if (!posMap[label][g.id]) posMap[label][g.id] = {};
+        posMap[label][g.id][playerId] = (posMap[label][g.id][playerId] || 0) + 1;
+      });
+    });
+  });
+
+  const posLabels = Object.keys(posMap).sort();
+  if (!posLabels.length) {
+    document.getElementById('section-d').innerHTML = '';
+    return;
+  }
+
+  const roster      = getRoster();
+  const gameHeaders = games.map(g =>
+    `<th style="text-align:center">${esc(g.opponent || g.name)}</th>`
+  ).join('');
+
+  const rows = posLabels.map(label => {
+    const cells = games.map((g, gi) => {
+      const countsForGame = posMap[label]?.[g.id] || {};
+      const topEntry      = Object.entries(countsForGame).sort(([, a], [, b]) => b - a)[0];
+      if (!topEntry) return `<td style="text-align:center;color:rgba(255,255,255,.2)">—</td>`;
+
+      const topPlayerId = topEntry[0];
+      const player      = roster.find(p => p.id === topPlayerId);
+      const displayName = player
+        ? `#${player.number} ${player.name.split(' ')[0]}`
+        : '?';
+
+      // Check if changed from previous game
+      let changed = false;
+      if (gi > 0) {
+        const prevGame    = games[gi - 1];
+        const prevCounts  = posMap[label]?.[prevGame.id] || {};
+        const prevTop     = Object.entries(prevCounts).sort(([, a], [, b]) => b - a)[0]?.[0];
+        changed = !!prevTop && prevTop !== topPlayerId;
+      }
+
+      const cellStyle = changed
+        ? 'background:rgba(229,57,53,.1);color:var(--danger)'
+        : '';
+      return `<td style="text-align:center;font-size:12px;${cellStyle}">${esc(displayName)}</td>`;
+    }).join('');
+
+    return `<tr>
+      <td style="font-size:12px;font-weight:600;white-space:nowrap">${esc(label)}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  document.getElementById('section-d').innerHTML = `
+    <div class="section-card" style="margin-top:12px">
+      <div class="section-head">
+        <span class="section-title">Comparativo por posición</span>
+        <span style="font-size:10px;color:var(--danger)">■</span>
+        <span style="font-size:10px;color:var(--text-muted)"> cambio de jugador</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Posición</th>
+              ${gameHeaders}
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════════════
+   EXPORT
+═══════════════════════════════════════════════════ */
+function toggleExportMenu() {
+  document.getElementById('export-dropdown').classList.toggle('hidden');
+}
+
+function exportPDF() {
+  document.getElementById('export-dropdown').classList.add('hidden');
+  window.print();
+}
+
+function exportSeasonCSV() {
+  document.getElementById('export-dropdown').classList.add('hidden');
+  const games   = getSelectedGames();
+  const players = getActivePlayersAcrossGames();
+
+  const header = [
+    'Jugador', '#', 'Posición', 'Unidad',
+    ...games.map(g => `Snaps_${g.opponent || g.name}`),
+    ...games.map(g => `Grade_${g.opponent || g.name}`),
+    'Snaps_Total', 'Grade_Prom'
+  ];
+
+  const rows = [header, ...players.map(p => [
+    p.name, p.number, p.position || '', p.unit || '',
+    ...p.snapsByGame.map(s => s || 0),
+    ...p.gradesByGame.map(v => v !== null ? v : ''),
+    p.totalSnaps,
+    p.avgGrade !== null ? p.avgGrade : ''
+  ])];
+
+  downloadCSV(rows, `PP_Temporada_${new Date().toISOString().slice(0, 10)}.csv`);
+  showToast('CSV descargado');
+}
+
+function downloadCSV(rows, filename) {
+  const content = rows.map(row =>
+    row.map(cell => {
+      const s = String(cell ?? '');
+      return s.includes(',') || s.includes('"') || s.includes('\n')
+        ? `"${s.replace(/"/g, '""')}"` : s;
+    }).join(',')
+  ).join('\n');
+
+  const blob = new Blob(['\ufeff' + content], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ═══════════════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════════════ */
+let _toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>

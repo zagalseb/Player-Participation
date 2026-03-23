@@ -415,6 +415,25 @@
     /* ── TOAST ── */
     .toast { bottom: 16px; }
 
+    /* ── EXPORT OPTION ── */
+    .export-option {
+      display: block;
+      width: 100%;
+      padding: 10px 16px;
+      text-align: left;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .export-option:hover {
+      background: var(--bg-card);
+    }
+
+    /* Print-only detail rows — hidden on screen, shown by @media print */
+    .print-detail { display: none; }
+
     /* ══════════════════════════════════════
        PRINT STYLES
     ══════════════════════════════════════ */
@@ -527,28 +546,90 @@
 <!-- ══════════════════════════════════
      HEADER
 ══════════════════════════════════ -->
-<header class="report-header" id="report-header">
-  <button class="rh-back" onclick="location.href='index.html'">←</button>
-  <div class="rh-info">
-    <div class="rh-title" id="rh-title">Reporte</div>
-    <div class="rh-sub" id="rh-sub">—</div>
-  </div>
-  <div class="export-wrap">
-    <button class="export-btn" onclick="toggleExportDropdown()" id="export-btn">
-      Exportar ▾
-    </button>
-    <div class="export-dropdown hidden" id="export-dropdown">
-      <button class="export-opt" onclick="exportPDF()">📄 Descargar PDF</button>
-      <button class="export-opt" onclick="exportCSV()">📊 Descargar CSV</button>
-      <button class="export-opt" onclick="shareReport()">📤 Compartir</button>
+<div id="report-header" style="
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  flex-shrink: 0;
+">
+  <!-- Izquierda: flecha + selector -->
+  <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+    <a href="index.html" style="color: var(--text-primary); text-decoration: none;
+       font-size: 20px; flex-shrink: 0;">←</a>
+
+    <div style="position: relative; flex: 1; min-width: 0;">
+      <button id="btn-game-selector" onclick="toggleGameDropdown()" style="
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 6px 12px;
+        color: var(--text-primary);
+        cursor: pointer;
+        width: 100%;
+        max-width: 320px;
+        text-align: left;
+      ">
+        <span id="selected-game-label" style="
+          font-size: 14px;
+          font-weight: 500;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          flex: 1;
+        ">Selecciona un partido</span>
+        <span style="font-size: 11px; color: var(--text-muted); flex-shrink: 0;">▾</span>
+      </button>
+
+      <!-- Dropdown de partidos -->
+      <div id="game-dropdown" style="
+        display: none;
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        min-width: 100%;
+        max-width: 360px;
+        background: var(--bg-panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        z-index: 50;
+        overflow: hidden;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      ">
+        <!-- poblado dinámicamente -->
+      </div>
     </div>
   </div>
-</header>
+
+  <!-- Derecha: botón exportar -->
+  <div style="position: relative; flex-shrink: 0;" class="export-wrap">
+    <button onclick="toggleExportMenu()" class="btn btn-ghost" style="font-size: 13px;">
+      Exportar ▾
+    </button>
+    <div id="export-menu" style="display:none; position:absolute; right:0; top:calc(100% + 4px);
+      background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: var(--radius-md); z-index: 50; min-width: 180px;
+      overflow: hidden;">
+      <button onclick="exportPDF()"   class="export-option">📄 Descargar PDF</button>
+      <button onclick="exportCSV()"   class="export-option">📊 Descargar CSV</button>
+      <button onclick="shareReport()" class="export-option">📤 Compartir</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════
      FILTERS BAR
 ══════════════════════════════════ -->
-<div class="filters-bar" id="filters-bar">
+<div class="filters-bar hidden" id="filters-bar">
   <span class="filter-label">Unidad:</span>
   <div class="filter-group">
     <button class="filter-btn" id="fu-ofe"  onclick="setUnitFilter('OFE')">OFE</button>
@@ -665,73 +746,173 @@ let gradesSortDir   = 'desc';
 /* ═══════════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════════ */
-window.addEventListener('DOMContentLoaded', () => {
-  const params = new URLSearchParams(location.search);
-  const gameId = params.get('game');
-  if (gameId) {
-    currentGame = getGame(gameId);
-    if (currentGame) setCurrentGame(gameId);
+window.onload = () => {
+  roster = getRoster();
+
+  // Prioridad 1: parámetro ?game= en URL
+  const params = new URLSearchParams(window.location.search);
+  const gameIdFromUrl = params.get('game');
+
+  // Prioridad 2: partido activo en sessionStorage
+  const gameFromSession = getCurrentGame();
+
+  // Prioridad 3: partido más reciente
+  const allGames = getGames().sort((a, b) => new Date(b.date) - new Date(a.date));
+  const latestGame = allGames[0] || null;
+
+  if (gameIdFromUrl) {
+    currentGame = getGame(gameIdFromUrl);
+  } else if (gameFromSession) {
+    currentGame = gameFromSession;
+  } else if (latestGame) {
+    currentGame = latestGame;
   }
-  if (!currentGame) currentGame = getCurrentGame();
+
+  if (currentGame) {
+    plays = getPlays(currentGame.id);
+    setCurrentGame(currentGame.id);
+  }
+
+  updateGameLabel();
 
   if (!currentGame) {
     showGameSelector();
     return;
   }
 
-  plays  = getPlays(currentGame.id);
-  roster = getRoster();
-  renderHeader();
+  document.getElementById('filters-bar').classList.remove('hidden');
   document.getElementById('report-content').classList.remove('hidden');
   renderAll();
-
-  // Close export dropdown on outside click
-  document.addEventListener('click', (e) => {
-    if (!document.getElementById('export-wrap') &&
-        !e.target.closest('.export-wrap')) {
-      document.getElementById('export-dropdown').classList.add('hidden');
-    }
-  });
-});
+};
 
 /* ═══════════════════════════════════════════════════
    GAME SELECTOR
 ═══════════════════════════════════════════════════ */
 function showGameSelector() {
   document.getElementById('filters-bar').classList.add('hidden');
-  document.getElementById('game-selector').classList.remove('hidden');
-  const games = getGames();
-  const list  = document.getElementById('game-sel-list');
-  if (!games.length) {
-    list.innerHTML = `<div class="report-empty"><div class="report-empty-icon">📋</div>Sin partidos registrados</div>`;
-    return;
-  }
-  list.innerHTML = games.map(g => {
-    const rival   = g.opponent ? `${g.name} vs ${g.opponent}` : g.name;
-    const dateFmt = g.date ? formatDate(g.date) : '';
-    return `
-      <div class="game-sel-row" onclick="selectGame('${g.id}')">
-        <div class="game-sel-dot"></div>
-        <div>
-          <div class="game-sel-name">${esc(rival)}</div>
-          ${dateFmt ? `<div class="game-sel-date">${esc(dateFmt)}</div>` : ''}
-        </div>
-      </div>`;
-  }).join('');
+  document.getElementById('report-content').innerHTML = `
+    <div style="display: flex; flex-direction: column; align-items: center;
+                justify-content: center; height: 60vh; gap: 1rem;
+                color: var(--text-muted);">
+      <div style="font-size: 48px;">📊</div>
+      <p style="margin: 0; font-size: 15px;">Sin partidos registrados</p>
+      <a href="index.html" class="btn btn-primary">
+        Ir a partidos
+      </a>
+    </div>
+  `;
 }
 
-function selectGame(id) {
-  currentGame = getGame(id);
-  if (!currentGame) return;
-  setCurrentGame(id);
-  plays  = getPlays(id);
-  roster = getRoster();
-  document.getElementById('game-selector').classList.add('hidden');
-  document.getElementById('filters-bar').classList.remove('hidden');
-  document.getElementById('report-content').classList.remove('hidden');
-  renderHeader();
+function selectGame(gameId) {
+  // Cerrar dropdown
+  document.getElementById('game-dropdown').style.display = 'none';
+
+  // Cargar nuevo partido
+  currentGame = getGame(gameId);
+  setCurrentGame(gameId);
+  plays = getPlays(gameId);
+
+  // Actualizar label del botón
+  updateGameLabel();
+
+  // Actualizar URL sin recargar la página
+  const url = new URL(window.location);
+  url.searchParams.set('game', gameId);
+  window.history.pushState({}, '', url);
+
+  // Recalcular y rerenderizar todo el reporte
   renderAll();
 }
+
+function updateGameLabel() {
+  const label = document.getElementById('selected-game-label');
+  if (!currentGame) {
+    label.textContent = 'Selecciona un partido';
+    return;
+  }
+  const games = getGames();
+  const total = games.length;
+  const index = games
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .findIndex(g => g.id === currentGame.id) + 1;
+
+  label.textContent = `${currentGame.name || `vs ${currentGame.opponent}`}  (${index}/${total})`;
+}
+
+function toggleGameDropdown() {
+  const dropdown = document.getElementById('game-dropdown');
+  const isOpen = dropdown.style.display === 'block';
+
+  if (isOpen) {
+    dropdown.style.display = 'none';
+    return;
+  }
+
+  // Poblar lista de partidos
+  const games = getGames().sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (!games.length) {
+    dropdown.innerHTML = `
+      <div style="padding: 12px 16px; font-size: 13px; color: var(--text-muted);">
+        Sin partidos registrados
+      </div>`;
+  } else {
+    dropdown.innerHTML = games.map(g => {
+      const isActive = currentGame && currentGame.id === g.id;
+      const plays = getPlays(g.id);
+      const graded = plays.filter(p =>
+        p.lineup && Object.keys(p.lineup).length > 0).length;
+
+      return `
+        <button onclick="selectGame('${g.id}')" style="
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          padding: 10px 16px;
+          text-align: left;
+          background: ${isActive ? 'var(--bg-card)' : 'transparent'};
+          border: none;
+          border-bottom: 1px solid var(--border);
+          cursor: pointer;
+          gap: 2px;
+        ">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 14px; font-weight: 500; color: var(--text-primary);">
+              ${g.name || `vs ${g.opponent}`}
+            </span>
+            ${isActive ? '<span style="font-size: 11px; color: var(--accent);">● actual</span>' : ''}
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span style="font-size: 12px; color: var(--text-muted);">
+              ${formatDate(g.date)}
+            </span>
+            <span style="font-size: 12px; color: var(--text-muted);">•</span>
+            <span style="font-size: 12px; color: var(--text-muted);">
+              ${graded} / ${plays.length} gradeadas
+            </span>
+            <span style="
+              font-size: 10px; padding: 1px 6px; border-radius: 4px;
+              background: ${g.status === 'complete' ? 'rgba(67,160,71,0.2)' : 'rgba(251,140,0,0.2)'};
+              color: ${g.status === 'complete' ? 'var(--success)' : 'var(--warn)'};
+            ">
+              ${g.status === 'complete' ? 'Completo' : 'En progreso'}
+            </span>
+          </div>
+        </button>`;
+    }).join('');
+  }
+
+  dropdown.style.display = 'block';
+}
+
+// Cerrar dropdown al tocar fuera
+document.addEventListener('click', e => {
+  const dropdown = document.getElementById('game-dropdown');
+  const btn = document.getElementById('btn-game-selector');
+  if (dropdown && btn && !dropdown.contains(e.target) && !btn.contains(e.target)) {
+    dropdown.style.display = 'none';
+  }
+});
 
 /* ═══════════════════════════════════════════════════
    HEADER
@@ -1249,7 +1430,7 @@ function updateSortIcons(prefix, activeCol, dir, cols) {
    EXPORT — PDF
 ═══════════════════════════════════════════════════ */
 function exportPDF() {
-  hideDropdown();
+  document.getElementById('export-menu').style.display = 'none';
   // Expand all players for print
   document.querySelectorAll('.print-detail').forEach(el => {
     el.style.display = 'table-row';
@@ -1266,7 +1447,7 @@ function exportPDF() {
    EXPORT — CSV
 ═══════════════════════════════════════════════════ */
 function exportCSV() {
-  hideDropdown();
+  document.getElementById('export-menu').style.display = 'none';
   const stats = computePlayerStats();
   const rows  = [
     ['Jugador','#','Posición','Unidad','Snaps','%Part',
@@ -1306,7 +1487,7 @@ function csvField(v) {
    SHARE
 ═══════════════════════════════════════════════════ */
 async function shareReport() {
-  hideDropdown();
+  document.getElementById('export-menu').style.display = 'none';
   const text = buildShareSummary();
   if (navigator.share) {
     try {
@@ -1378,16 +1559,17 @@ function buildShareSummary() {
 /* ═══════════════════════════════════════════════════
    EXPORT DROPDOWN
 ═══════════════════════════════════════════════════ */
-function toggleExportDropdown() {
-  document.getElementById('export-dropdown').classList.toggle('hidden');
-}
-
-function hideDropdown() {
-  document.getElementById('export-dropdown').classList.add('hidden');
+function toggleExportMenu() {
+  const menu = document.getElementById('export-menu');
+  if (!menu) return;
+  menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
 }
 
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('.export-wrap')) hideDropdown();
+  if (!e.target.closest('.export-wrap')) {
+    const menu = document.getElementById('export-menu');
+    if (menu) menu.style.display = 'none';
+  }
 });
 
 /* ═══════════════════════════════════════════════════

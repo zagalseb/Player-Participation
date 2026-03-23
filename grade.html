@@ -453,6 +453,7 @@
       <div class="field-controls">
         <button class="btn-move" id="btn-move" onclick="toggleMoveMode()">Mover</button>
         <div class="field-controls-right">
+          <button class="btn-field-sm" onclick="openNewPlayModal()">+ Jugada</button>
           <button class="btn-field-sm" onclick="addPosition()">+ Pos</button>
           <button class="btn-field-sm" onclick="confirmClearLineup()">Limpiar lineup</button>
         </div>
@@ -468,7 +469,7 @@
         o regresa y carga un CSV
       </div>
       <div class="empty-game-btns">
-        <button class="btn btn-primary" onclick="openAddPlayModal()">+ Agregar jugada</button>
+        <button class="btn btn-primary" onclick="openNewPlayModal()">+ Agregar jugada</button>
         <button class="btn btn-ghost" onclick="location.href='index.html'">← Volver</button>
       </div>
     </div>
@@ -557,6 +558,108 @@
       <button class="btn btn-ghost" onclick="closeAddPlayModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="saveNewPlay()">Agregar</button>
     </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     MODAL — NUEVA JUGADA
+══════════════════════════════════ -->
+<div id="modal-new-play" class="modal-overlay" style="display:none;">
+  <div class="modal-box" style="max-width: 380px; width: 90%;">
+
+    <h3 style="margin: 0 0 1rem; font-size: 16px; font-weight: 500;">
+      Nueva jugada
+    </h3>
+
+    <!-- Cuarto -->
+    <label style="font-size: 13px; color: var(--text-muted);">Cuarto</label>
+    <div style="display: flex; gap: 8px; margin: 4px 0 1rem;">
+      <button class="quarter-btn btn btn-ghost" data-q="1">1</button>
+      <button class="quarter-btn btn btn-ghost" data-q="2">2</button>
+      <button class="quarter-btn btn btn-ghost" data-q="3">3</button>
+      <button class="quarter-btn btn btn-ghost" data-q="4">4</button>
+    </div>
+
+    <!-- Down & Distance -->
+    <div style="display: flex; gap: 12px; margin-bottom: 1rem;">
+      <div style="flex: 1;">
+        <label style="font-size: 13px; color: var(--text-muted);">Down</label>
+        <select id="np-down" style="width: 100%; margin-top: 4px;">
+          <option value="1">1ro</option>
+          <option value="2">2do</option>
+          <option value="3">3ro</option>
+          <option value="4">4to</option>
+        </select>
+      </div>
+      <div style="flex: 1;">
+        <label style="font-size: 13px; color: var(--text-muted);">Yardas para 1ro</label>
+        <input id="np-tofirst" type="number" min="1" max="99" value="10"
+               style="width: 100%; margin-top: 4px;">
+      </div>
+    </div>
+
+    <!-- Yard Line -->
+    <div style="margin-bottom: 1rem;">
+      <label style="font-size: 13px; color: var(--text-muted);">Yard Line</label>
+      <input id="np-yardline" type="number" min="1" max="99" placeholder="ej. 35"
+             style="width: 100%; margin-top: 4px;">
+    </div>
+
+    <!-- Formación -->
+    <div style="margin-bottom: 1rem;">
+      <label style="font-size: 13px; color: var(--text-muted);">Formación</label>
+      <select id="np-formation" style="width: 100%; margin-top: 4px;">
+        <!-- poblado dinámicamente con getFormations() -->
+      </select>
+    </div>
+
+    <!-- Unidad -->
+    <div style="margin-bottom: 1rem;">
+      <label style="font-size: 13px; color: var(--text-muted);">Unidad</label>
+      <div style="display: flex; gap: 8px; margin-top: 4px;">
+        <button class="unit-btn btn btn-ghost" data-unit="OFE"
+                style="flex:1;" onclick="selectNewPlayUnit('OFE')">OFE</button>
+        <button class="unit-btn btn btn-ghost" data-unit="DEF"
+                style="flex:1;" onclick="selectNewPlayUnit('DEF')">DEF</button>
+        <button class="unit-btn btn btn-ghost" data-unit="ST"
+                style="flex:1;" onclick="selectNewPlayUnit('ST')">ST</button>
+      </div>
+    </div>
+
+    <!-- Resultado (opcional) -->
+    <details style="margin-bottom: 1.5rem;">
+      <summary style="font-size: 13px; color: var(--text-muted); cursor: pointer;">
+        Resultado (opcional)
+      </summary>
+      <div style="display: flex; gap: 12px; margin-top: 8px;">
+        <div style="flex: 1;">
+          <label style="font-size: 12px; color: var(--text-muted);">Resultado</label>
+          <select id="np-result" style="width: 100%; margin-top: 4px;">
+            <option value="">—</option>
+            <option>Gain</option>
+            <option>Complete</option>
+            <option>Incomplete</option>
+            <option>Touchdown</option>
+            <option>Interception</option>
+            <option>Fumble</option>
+            <option>Sack</option>
+            <option>Penalty</option>
+          </select>
+        </div>
+        <div style="flex: 1;">
+          <label style="font-size: 12px; color: var(--text-muted);">Yardas ganadas</label>
+          <input id="np-yards" type="number" min="-99" max="99" placeholder="0"
+                 style="width: 100%; margin-top: 4px;">
+        </div>
+      </div>
+    </details>
+
+    <!-- Acciones -->
+    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+      <button class="btn btn-ghost" onclick="closeNewPlayModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmNewPlay()">Crear jugada</button>
+    </div>
+
   </div>
 </div>
 
@@ -1388,6 +1491,126 @@ function esc(s) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+
+/* ═══════════════════════════════════════════════════
+   NUEVA JUGADA MODAL
+═══════════════════════════════════════════════════ */
+let newPlayData = { quarter: 1, unit: 'OFE' };
+
+function openNewPlayModal() {
+  newPlayData = { quarter: 1, unit: 'OFE' };
+
+  // Poblar selector de formaciones con templates guardados
+  const npFormation = document.getElementById('np-formation');
+  npFormation.innerHTML = '<option value="">Sin formación</option>';
+  getFormations().forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.name;
+    opt.textContent = f.name + (f.unit ? ` (${f.unit})` : '');
+    npFormation.appendChild(opt);
+  });
+
+  // Reset visual de botones quarter y unit
+  document.querySelectorAll('.quarter-btn').forEach(b => {
+    b.classList.toggle('btn-primary', parseInt(b.dataset.q) === 1);
+    b.classList.toggle('btn-ghost', parseInt(b.dataset.q) !== 1);
+  });
+  document.querySelectorAll('#modal-new-play .unit-btn').forEach(b => {
+    b.classList.toggle('btn-primary', b.dataset.unit === 'OFE');
+    b.classList.toggle('btn-ghost', b.dataset.unit !== 'OFE');
+  });
+
+  document.getElementById('modal-new-play').style.display = 'flex';
+}
+
+function closeNewPlayModal() {
+  document.getElementById('modal-new-play').style.display = 'none';
+}
+
+function selectNewPlayQuarter(q) {
+  newPlayData.quarter = q;
+  document.querySelectorAll('.quarter-btn').forEach(b => {
+    b.classList.toggle('btn-primary', parseInt(b.dataset.q) === q);
+    b.classList.toggle('btn-ghost', parseInt(b.dataset.q) !== q);
+  });
+}
+
+function selectNewPlayUnit(unit) {
+  newPlayData.unit = unit;
+  document.querySelectorAll('#modal-new-play .unit-btn').forEach(b => {
+    b.classList.toggle('btn-primary', b.dataset.unit === unit);
+    b.classList.toggle('btn-ghost', b.dataset.unit !== unit);
+  });
+}
+
+function confirmNewPlay() {
+  const down      = parseInt(document.getElementById('np-down').value);
+  const toFirst   = parseInt(document.getElementById('np-tofirst').value) || 10;
+  const yardLine  = parseInt(document.getElementById('np-yardline').value) || 0;
+  const formation = document.getElementById('np-formation').value;
+  const result    = document.getElementById('np-result').value;
+  const yards     = parseInt(document.getElementById('np-yards').value) || 0;
+
+  if (!newPlayData.quarter) { alert('Selecciona el cuarto'); return; }
+
+  const newPlay = {
+    playNumber:   plays.length + 1,
+    timestamp:    new Date().toISOString(),
+    drive:        '',
+    poss:         'OWN',
+    down:         down,
+    toFirst:      toFirst,
+    yardLine:     yardLine,
+    yardDisplay:  yardLine > 50 ? -(100 - yardLine) : yardLine,
+    quarter:      newPlayData.quarter,
+    formation:    formation,
+    play:         '',
+    type:         '',
+    motion:       '',
+    strength:     '',
+    hash:         '',
+    yardsGained:  yards,
+    result:       result,
+    playerNumber: '',
+    noPlay:       '',
+    penaltyType:  '',
+    front:        '',
+    blitz:        '',
+    coverage:     '',
+    notes:        '',
+    unit:         newPlayData.unit,
+    lineup:       {},
+    grades:       {}
+  };
+
+  // Guardar estado de jugada actual antes de insertar
+  saveCurrentState();
+
+  // Insertar nueva jugada después de la jugada actual
+  const insertAt = plays.length > 0 ? currentPlayIndex + 1 : 0;
+  plays.splice(insertAt, 0, newPlay);
+
+  // Renumerar todas las jugadas
+  plays.forEach((p, i) => { p.playNumber = i + 1; });
+
+  savePlays(currentGame.id, plays);
+  closeNewPlayModal();
+
+  // Si estábamos en estado vacío, mostrar el campo
+  document.getElementById('field-container').style.display = '';
+  document.getElementById('play-data-bar').style.display   = '';
+  document.getElementById('empty-game-state').classList.add('hidden');
+
+  loadPlay(insertAt);
+  showToast('Jugada creada');
+}
+
+// Eventos de los botones de cuarto
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.quarter-btn').forEach(btn => {
+    btn.addEventListener('click', () => selectNewPlayQuarter(parseInt(btn.dataset.q)));
+  });
+});
 </script>
 
 </body>
