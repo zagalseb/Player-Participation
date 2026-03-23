@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Formaciones — Player Participation</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ══ LIST VIEW ══ */
+
+    .page-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 16px 8px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-panel);
+      position: sticky; top: 0; z-index: 20;
+    }
+    .header-back {
+      background: none; border: none; color: var(--accent);
+      font-size: 20px; line-height: 1; padding: 4px 8px 4px 0;
+      cursor: pointer; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .header-title-wrap { flex: 1; min-width: 0; }
+    .header-title { font-size: 18px; font-weight: 800; line-height: 1.1; }
+    .header-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    .filter-bar { padding: 12px 16px 4px; }
+
+    /* Formation grid */
+    .formation-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 12px 16px 80px;
+    }
+
+    .formation-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: 10px;
+      border: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 8px;
+      transition: border-color 0.15s;
+    }
+    .formation-card:hover { border-color: rgba(255,255,255,0.15); }
+
+    .card-top-row {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 4px;
+    }
+    .card-name {
+      font-size: 13px; font-weight: 700; line-height: 1.3;
+      word-break: break-word; flex: 1;
+    }
+    .badge-lock { font-size: 12px; opacity: 0.45; flex-shrink: 0; }
+    .card-meta {
+      display: flex; align-items: center;
+      gap: 5px; flex-wrap: wrap;
+    }
+    .badge-default {
+      padding: 2px 5px; border-radius: 3px;
+      font-size: 9px; font-weight: 800; letter-spacing: 0.5px;
+      background: rgba(251,140,0,0.15); color: var(--warn);
+      text-transform: uppercase;
+    }
+    .card-pos-count { font-size: 11px; color: var(--text-muted); }
+
+    /* Mini field preview */
+    .mini-field {
+      position: relative; width: 100%; height: 68px;
+      border-radius: 4px; overflow: hidden;
+      background-color: var(--bg-field);
+      background-image: url('35_NCAA_Field_Player_Participation.png');
+      background-size: cover; background-position: center;
+      flex-shrink: 0;
+    }
+    .mini-field::before {
+      content: ''; position: absolute; inset: 0;
+      background: rgba(0,0,0,0.22); pointer-events: none;
+    }
+    .mini-dot {
+      position: absolute;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #1e88e5; transform: translate(-50%,-50%);
+      z-index: 1; pointer-events: none;
+    }
+
+    /* Card actions */
+    .card-actions { display: flex; gap: 5px; align-items: center; }
+    .btn-edit-card { flex: 1; }
+
+    @media (min-width: 768px) {
+      .filter-bar {
+        padding: 14px 24px 4px;
+        max-width: 960px; margin: 0 auto;
+      }
+      .formation-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+        padding: 14px 24px 80px;
+        max-width: 960px; margin: 0 auto;
+      }
+    }
+
+    /* ══ EDITOR VIEW ══ */
+
+    #view-editor {
+      position: fixed; inset: 0;
+      background: var(--bg-app);
+      z-index: 200;
+      display: none; flex-direction: column;
+    }
+    #view-editor.active { display: flex; }
+
+    .editor-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 16px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .editor-title {
+      flex: 1; font-size: 15px; font-weight: 700; text-align: center;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* Editor body — portrait: single column, landscape: two columns */
+    .editor-body {
+      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: 14px; display: flex; flex-direction: column; gap: 14px;
+    }
+    .editor-left  { display: flex; flex-direction: column; gap: 14px; }
+    .editor-right { display: flex; flex-direction: column; gap: 14px; }
+
+    @media (min-width: 768px) {
+      .editor-body {
+        flex-direction: row; align-items: flex-start;
+        overflow: hidden; padding: 16px 20px; gap: 18px;
+      }
+      .editor-left {
+        flex: 1; min-width: 0; overflow-y: auto; height: 100%;
+      }
+      .editor-right {
+        width: 275px; flex-shrink: 0; overflow-y: auto; height: 100%;
+      }
+    }
+
+    /* Meta panel */
+    .editor-meta {
+      background: var(--bg-panel); border-radius: var(--radius-md);
+      padding: 13px; border: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 10px; flex-shrink: 0;
+    }
+    .csv-hint {
+      background: rgba(30,136,229,0.08);
+      border: 1px solid rgba(30,136,229,0.18);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px; font-size: 11px;
+      color: var(--text-muted); line-height: 1.55;
+    }
+
+    /* Unit toggle */
+    .unit-toggle { display: flex; gap: 8px; }
+    .unit-toggle-btn {
+      flex: 1; padding: 8px 6px;
+      border-radius: var(--radius-sm); border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04); color: var(--text-muted);
+      font-size: 13px; font-weight: 700; cursor: pointer; text-align: center;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .unit-toggle-btn[data-unit="OFE"].active { background:#1a3a5c; border-color:#64b5f6; color:#64b5f6; }
+    .unit-toggle-btn[data-unit="DEF"].active { background:#3a1a1a; border-color:#ef9a9a; color:#ef9a9a; }
+    .unit-toggle-btn[data-unit="ST"].active  { background:#1a3a1a; border-color:#a5d6a7; color:#a5d6a7; }
+
+    /* Editor field */
+    #editor-field {
+      aspect-ratio: 16 / 7;
+      max-height: 65vh;
+      width: 100%;
+      background-image: url('35_NCAA_Field_Player_Participation.png');
+      background-size: cover;
+      background-position: center center;
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius-md);
+      border: 2px solid rgba(255,255,255,0.1);
+      background-color: var(--bg-field);
+      touch-action: none;
+      user-select: none; -webkit-user-select: none;
+      flex-shrink: 0; cursor: default;
+    }
+    #editor-field::before {
+      content: ''; position: absolute; inset: 0;
+      background: rgba(0,0,0,0.15); z-index: 1; pointer-events: none;
+    }
+
+    /* Editor chips */
+    .e-chip {
+      position: absolute;
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.6);
+      background: rgba(30,136,229,0.65);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 800; color: #fff;
+      cursor: grab; transform: translate(-50%,-50%);
+      user-select: none; -webkit-user-select: none;
+      touch-action: none; z-index: 10;
+      text-align: center; line-height: 1.15;
+      overflow: hidden; word-break: break-all; padding: 3px;
+      transition: border-color 0.1s, box-shadow 0.1s, background 0.1s;
+    }
+    .e-chip:active { cursor: grabbing; }
+    .e-chip.selected {
+      border-color: #fff;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+      background: var(--accent); z-index: 15;
+    }
+
+    /* Controls panel */
+    .editor-controls {
+      background: var(--bg-panel); border-radius: var(--radius-md);
+      padding: 13px; border: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 10px; flex-shrink: 0;
+    }
+    .controls-top-row { display: flex; gap: 8px; }
+    .label-panel { display: flex; flex-direction: column; gap: 6px; }
+    .label-panel.hidden { display: none; }
+    .chip-count {
+      font-size: 11px; color: var(--text-muted); text-align: right;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════
+       LIST VIEW
+  ══════════════════════════════════ -->
+  <div id="view-list">
+
+    <header class="page-header">
+      <button class="header-back" onclick="location.href='index.html'" aria-label="Volver">←</button>
+      <div class="header-title-wrap">
+        <div class="header-title">Formaciones</div>
+        <div class="header-subtitle" id="counter">0 templates</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openEditor(null)">+ Nueva</button>
+    </header>
+
+    <main class="page-content">
+
+      <!-- Unit filter -->
+      <div class="filter-bar">
+        <div class="tab-strip">
+          <button class="tab-btn active" data-unit="all" onclick="setUnitFilter('all')">Todas</button>
+          <button class="tab-btn"        data-unit="OFE" onclick="setUnitFilter('OFE')">OFE</button>
+          <button class="tab-btn"        data-unit="DEF" onclick="setUnitFilter('DEF')">DEF</button>
+          <button class="tab-btn"        data-unit="ST"  onclick="setUnitFilter('ST')">ST</button>
+        </div>
+      </div>
+
+      <!-- Grid container (filled by JS) -->
+      <div id="formation-grid-wrap"></div>
+
+    </main>
+
+    <nav class="nav-bar">
+      <button class="nav-tab" onclick="location.href='index.html'">
+        <span class="nav-icon">📋</span>PARTIDOS
+      </button>
+      <button class="nav-tab" onclick="location.href='roster.html'">
+        <span class="nav-icon">👥</span>ROSTER
+      </button>
+      <button class="nav-tab active" onclick="location.href='formations.html'">
+        <span class="nav-icon">🏈</span>FORMACIONES
+      </button>
+      <button class="nav-tab" onclick="goCampo()">
+        <span class="nav-icon">📐</span>CAMPO
+      </button>
+      <button class="nav-tab" onclick="goReport()">
+        <span class="nav-icon">📊</span>REPORTE
+      </button>
+    </nav>
+
+  </div><!-- #view-list -->
+
+  <!-- ══════════════════════════════════
+       EDITOR VIEW (fixed full-screen overlay)
+  ══════════════════════════════════ -->
+  <div id="view-editor">
+
+    <header class="editor-header">
+      <button class="btn btn-ghost btn-sm" onclick="cancelEditor()">← Cancelar</button>
+      <div class="editor-title" id="editor-title">Nueva formación</div>
+      <button class="btn btn-primary btn-sm" onclick="submitFormation()">Guardar</button>
+    </header>
+
+    <div class="editor-body" id="editor-body">
+
+      <!-- Left: interactive field -->
+      <div class="editor-left">
+        <div id="editor-field"></div>
+      </div>
+
+      <!-- Right: metadata + controls -->
+      <div class="editor-right">
+
+        <!-- Meta -->
+        <div class="editor-meta">
+          <div class="form-group">
+            <label class="form-label" for="f-form-name">Nombre del template *</label>
+            <input type="text" id="f-form-name" placeholder="Ej: Shotgun / Spread"
+                   oninput="onNameInput(this.value)">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Unidad *</label>
+            <div class="unit-toggle">
+              <button class="unit-toggle-btn" data-unit="OFE" onclick="selectEditorUnit('OFE')">OFE</button>
+              <button class="unit-toggle-btn" data-unit="DEF" onclick="selectEditorUnit('DEF')">DEF</button>
+              <button class="unit-toggle-btn" data-unit="ST"  onclick="selectEditorUnit('ST')">ST</button>
+            </div>
+          </div>
+          <div class="csv-hint">
+            ℹ️ El nombre debe coincidir exactamente con el valor de <strong>"Formation"</strong> en tu CSV de PlaySync
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="editor-controls">
+          <div class="controls-top-row">
+            <button class="btn btn-ghost btn-sm" style="flex:1" onclick="addChip()">
+              + Agregar posición
+            </button>
+            <button class="btn btn-danger btn-sm btn-icon" id="btn-del-chip"
+                    onclick="deleteSelectedChip()" disabled title="Eliminar seleccionada"
+                    style="width:36px;height:32px">🗑</button>
+          </div>
+          <div class="label-panel hidden" id="label-panel">
+            <label class="form-label">Posición seleccionada — label</label>
+            <input type="text" id="f-chip-label" placeholder="Ej: WR-X"
+                   oninput="updateChipLabel(this.value)"
+                   onkeydown="if(event.key==='Enter')this.blur()">
+          </div>
+          <div class="chip-count" id="chip-count">0 posiciones</div>
+        </div>
+
+      </div><!-- .editor-right -->
+    </div><!-- .editor-body -->
+
+  </div><!-- #view-editor -->
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+  <script>
+  'use strict';
+
+  /* ─────────────────────────────────────────────
+     STATE
+  ───────────────────────────────────────────── */
+  let formations       = [];
+  let activeUnit       = 'all';
+  let editingFormation = null;   // deep copy of formation being edited
+  let selectedChipId   = null;
+  let isDragging       = false;
+
+  /* ─────────────────────────────────────────────
+     INIT
+  ───────────────────────────────────────────── */
+  document.addEventListener('DOMContentLoaded', () => {
+    formations = getFormations();
+    renderList();
+    updateCounter();
+
+    // Deselect chip when clicking field background
+    document.getElementById('editor-field').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('editor-field') && !isDragging) {
+        deselectChip();
+      }
+    });
+  });
+
+  /* ─────────────────────────────────────────────
+     LIST VIEW — RENDER
+  ───────────────────────────────────────────── */
+  function setUnitFilter(unit) {
+    activeUnit = unit;
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.unit === unit);
+    });
+    renderList();
+  }
+
+  function renderList() {
+    formations = getFormations();
+    const wrap = document.getElementById('formation-grid-wrap');
+
+    const filtered = formations.filter(
+      f => activeUnit === 'all' || f.unit === activeUnit
+    );
+
+    if (!formations.length) {
+      wrap.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🏈</div>
+          <div><strong>Sin formaciones guardadas</strong></div>
+          <div style="margin-top:6px;font-size:13px">
+            Crea tu primera formación o<br>usa las plantillas por defecto
+          </div>
+          <div style="margin-top:1.25rem">
+            <button class="btn btn-primary btn-sm" onclick="openEditor(null)">+ Nueva formación</button>
+          </div>
+        </div>`;
+      return;
+    }
+
+    if (!filtered.length) {
+      wrap.innerHTML = `
+        <div class="empty-state" style="padding:2.5rem 1rem">
+          <div style="font-size:13px;color:var(--text-muted)">Sin formaciones para esta unidad</div>
+        </div>`;
+      return;
+    }
+
+    wrap.innerHTML = `<div class="formation-grid">${
+      filtered.map(f => buildCardHTML(f)).join('')
+    }</div>`;
+
+    // Inject mini-field dots after DOM insertion
+    filtered.forEach(f => {
+      const el = document.getElementById(`mini-${f.id}`);
+      if (el) renderMiniField(f, el);
+    });
+  }
+
+  function buildCardHTML(f) {
+    const badgeCls = f.unit === 'OFE' ? 'badge-ofe'
+                   : f.unit === 'DEF' ? 'badge-def'
+                   : 'badge-st';
+    const posCount = (f.positions || []).length;
+
+    return `
+      <div class="formation-card">
+        <div class="card-top-row">
+          <div class="card-name">${esc(f.name)}</div>
+          ${f.isDefault ? '<span class="badge-lock" title="Template por defecto">🔒</span>' : ''}
+        </div>
+        <div class="card-meta">
+          <span class="badge ${badgeCls}">${esc(f.unit)}</span>
+          ${f.isDefault ? '<span class="badge-default">DEFAULT</span>' : ''}
+          <span class="card-pos-count">${posCount} pos.</span>
+        </div>
+        <div class="mini-field" id="mini-${f.id}"></div>
+        <div class="card-actions">
+          <button class="btn btn-ghost btn-sm btn-edit-card"
+                  onclick="openEditor('${f.id}')">✏ Editar</button>
+          <button class="btn btn-ghost btn-sm btn-icon" title="Duplicar"
+                  onclick="duplicateFormation('${f.id}')"
+                  style="width:32px;height:32px;font-size:14px">📋</button>
+          ${f.isDefault
+            ? `<button class="btn btn-ghost btn-sm btn-icon" title="Template por defecto — no se puede eliminar"
+                       style="width:32px;height:32px;opacity:.3;cursor:not-allowed">🗑</button>`
+            : `<button class="btn btn-ghost btn-sm btn-icon" title="Eliminar"
+                       onclick="confirmDeleteFormation('${f.id}')"
+                       style="width:32px;height:32px">🗑</button>`
+          }
+        </div>
+      </div>`;
+  }
+
+  function renderMiniField(formation, containerEl) {
+    containerEl.style.position   = 'relative';
+    containerEl.style.background = '#1e3a1e';
+    containerEl.style.borderRadius = '4px';
+    containerEl.style.width      = '100%';
+    containerEl.style.aspectRatio = '16 / 7';
+    containerEl.style.height     = '';
+
+    (formation.positions || []).forEach(pos => {
+      const dot = document.createElement('div');
+      dot.style.cssText = `
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #1e88e5;
+        border: 1px solid rgba(255,255,255,0.5);
+        left: ${pos.x}%;
+        top: ${pos.y}%;
+        transform: translate(-50%, -50%);
+      `;
+      containerEl.appendChild(dot);
+    });
+  }
+
+  function updateCounter() {
+    const n = getFormations().length;
+    document.getElementById('counter').textContent =
+      n === 1 ? '1 template guardado' : `${n} templates guardados`;
+  }
+
+  /* ─────────────────────────────────────────────
+     LIST ACTIONS
+  ───────────────────────────────────────────── */
+  function confirmDeleteFormation(id) {
+    const f = formations.find(x => x.id === id);
+    if (!f) return;
+    if (f.isDefault) {
+      showToast('Los templates por defecto no se pueden eliminar');
+      return;
+    }
+    if (!confirm(`¿Eliminar la formación "${f.name}"?`)) return;
+    deleteFormation(id);
+    formations = getFormations();
+    renderList();
+    updateCounter();
+    showToast('Formación eliminada');
+  }
+
+  function duplicateFormation(id) {
+    const original = formations.find(f => f.id === id);
+    if (!original) return;
+    const copy = {
+      id:        generateId(),
+      name:      `Copia de ${original.name}`,
+      unit:      original.unit,
+      isDefault: false,
+      positions: (original.positions || []).map(p => ({ ...p, id: generateId() })),
+    };
+    saveFormation(copy);
+    formations = getFormations();
+    renderList();
+    updateCounter();
+    showToast(`"${copy.name}" creada ✓`);
+  }
+
+  /* ─────────────────────────────────────────────
+     EDITOR — OPEN / CLOSE
+  ───────────────────────────────────────────── */
+  function openEditor(idOrNull) {
+    if (idOrNull) {
+      const f = formations.find(x => x.id === idOrNull);
+      if (!f) return;
+      // Deep copy so edits don't mutate originals until Save
+      editingFormation = {
+        id:        f.id,
+        name:      f.name,
+        unit:      f.unit,
+        isDefault: f.isDefault || false,
+        positions: (f.positions || []).map(p => ({ ...p })),
+      };
+    } else {
+      editingFormation = {
+        id:        generateId(),
+        name:      '',
+        unit:      'OFE',
+        isDefault: false,
+        positions: [],
+      };
+    }
+
+    selectedChipId = null;
+
+    document.getElementById('f-form-name').value = editingFormation.name;
+    setEditorUnit(editingFormation.unit);
+    document.getElementById('editor-title').textContent =
+      editingFormation.name || 'Nueva formación';
+
+    document.getElementById('view-editor').classList.add('active');
+    renderEditorField();
+    updateChipCount();
+    syncLabelPanel();
+  }
+
+  function cancelEditor() {
+    document.getElementById('view-editor').classList.remove('active');
+    editingFormation = null;
+    selectedChipId   = null;
+  }
+
+  /* ─────────────────────────────────────────────
+     EDITOR — META
+  ───────────────────────────────────────────── */
+  function onNameInput(val) {
+    if (editingFormation) editingFormation.name = val.trim();
+    document.getElementById('editor-title').textContent = val.trim() || 'Nueva formación';
+  }
+
+  function selectEditorUnit(unit) {
+    if (editingFormation) editingFormation.unit = unit;
+    setEditorUnit(unit);
+  }
+
+  function setEditorUnit(unit) {
+    document.querySelectorAll('.unit-toggle-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.unit === unit);
+    });
+  }
+
+  /* ─────────────────────────────────────────────
+     EDITOR — FIELD RENDER
+  ───────────────────────────────────────────── */
+  function renderEditorField() {
+    const field = document.getElementById('editor-field');
+    // Remove existing chips (keep ::before pseudo-element via CSS)
+    field.querySelectorAll('.e-chip').forEach(el => el.remove());
+
+    if (!editingFormation) return;
+
+    editingFormation.positions.forEach(pos => {
+      const chip = document.createElement('div');
+      chip.className  = 'e-chip';
+      chip.style.left = pos.x + '%';
+      chip.style.top  = pos.y + '%';
+      chip.dataset.id = pos.id;
+
+      // Cambio 2 — tamaño y color de chip
+      chip.style.width        = '42px';
+      chip.style.height       = '42px';
+      chip.style.borderRadius = '50%';
+      chip.style.background   = 'rgba(0, 0, 0, 0.75)';
+      chip.style.border       = '2px solid rgba(255, 255, 255, 0.85)';
+      chip.style.color        = '#ffffff';
+      chip.style.cursor       = 'grab';
+
+      if (pos.id === selectedChipId) {
+        chip.style.border     = '3px solid #ffffff';
+        chip.style.boxShadow  = '0 0 0 3px rgba(255,255,255,0.4)';
+        chip.style.background = '#1e88e5';
+      }
+
+      // Cambio 3 — label element con tipografía
+      const labelEl = document.createElement('span');
+      labelEl.textContent          = pos.label;
+      labelEl.style.fontSize       = '9px';
+      labelEl.style.fontWeight     = '500';
+      labelEl.style.color          = '#ffffff';
+      labelEl.style.textAlign      = 'center';
+      labelEl.style.maxWidth       = '38px';
+      labelEl.style.overflow       = 'hidden';
+      labelEl.style.textOverflow   = 'ellipsis';
+      labelEl.style.whiteSpace     = 'nowrap';
+      labelEl.style.lineHeight     = '1.1';
+      chip.appendChild(labelEl);
+
+      chip.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        selectChip(pos.id);
+        initDrag(chip, pos.id, e);
+      });
+      chip.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        selectChip(pos.id);
+        initDrag(chip, pos.id, e);
+      }, { passive: false });
+
+      field.appendChild(chip);
+    });
+  }
+
+  /* ─────────────────────────────────────────────
+     EDITOR — CHIP SELECTION
+  ───────────────────────────────────────────── */
+  function selectChip(id) {
+    selectedChipId = id;
+    document.querySelectorAll('.e-chip').forEach(el => {
+      el.classList.toggle('selected', el.dataset.id === id);
+    });
+    syncLabelPanel();
+  }
+
+  function deselectChip() {
+    selectedChipId = null;
+    document.querySelectorAll('.e-chip').forEach(el => el.classList.remove('selected'));
+    syncLabelPanel();
+  }
+
+  function syncLabelPanel() {
+    const panel = document.getElementById('label-panel');
+    const delBtn = document.getElementById('btn-del-chip');
+
+    if (selectedChipId && editingFormation) {
+      const pos = editingFormation.positions.find(p => p.id === selectedChipId);
+      if (pos) {
+        panel.classList.remove('hidden');
+        document.getElementById('f-chip-label').value = pos.label;
+        delBtn.disabled = false;
+        return;
+      }
+    }
+    panel.classList.add('hidden');
+    delBtn.disabled = true;
+  }
+
+  function updateChipLabel(newLabel) {
+    if (!selectedChipId || !editingFormation) return;
+    const pos = editingFormation.positions.find(p => p.id === selectedChipId);
+    if (!pos) return;
+    pos.label = newLabel;
+    // Update DOM text directly — no full re-render needed
+    const chip = document.querySelector(`.e-chip[data-id="${selectedChipId}"]`);
+    if (chip) {
+      const labelEl = chip.querySelector('span');
+      if (labelEl) labelEl.textContent = newLabel;
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     EDITOR — ADD / DELETE CHIP
+  ───────────────────────────────────────────── */
+  function addChip() {
+    if (!editingFormation) return;
+    const newPos = { id: generateId(), label: 'POS', x: 50, y: 50 };
+    editingFormation.positions.push(newPos);
+    renderEditorField();
+    updateChipCount();
+    selectChip(newPos.id);
+    setTimeout(() => {
+      const inp = document.getElementById('f-chip-label');
+      inp.focus();
+      inp.select();
+    }, 60);
+  }
+
+  function deleteSelectedChip() {
+    if (!selectedChipId || !editingFormation) return;
+    editingFormation.positions = editingFormation.positions.filter(
+      p => p.id !== selectedChipId
+    );
+    selectedChipId = null;
+    renderEditorField();
+    updateChipCount();
+    syncLabelPanel();
+  }
+
+  function updateChipCount() {
+    const n = editingFormation ? editingFormation.positions.length : 0;
+    document.getElementById('chip-count').textContent =
+      n === 1 ? '1 posición' : `${n} posiciones`;
+  }
+
+  /* ─────────────────────────────────────────────
+     EDITOR — DRAG & DROP (mouse + touch)
+  ───────────────────────────────────────────── */
+  function initDrag(chipEl, posId, startEvent) {
+    if (isDragging) return;
+
+    const field = document.getElementById('editor-field');
+    const pos   = editingFormation.positions.find(p => p.id === posId);
+    if (!pos) return;
+
+    const fieldRect = field.getBoundingClientRect();
+
+    // Chip center in pixels relative to the field
+    const chipCX = (pos.x / 100) * fieldRect.width;
+    const chipCY = (pos.y / 100) * fieldRect.height;
+
+    // Initial pointer position
+    const startCX = startEvent.touches
+      ? startEvent.touches[0].clientX
+      : startEvent.clientX;
+    const startCY = startEvent.touches
+      ? startEvent.touches[0].clientY
+      : startEvent.clientY;
+
+    // Offset from the pointer to the chip center
+    const offsetX = startCX - (fieldRect.left + chipCX);
+    const offsetY = startCY - (fieldRect.top  + chipCY);
+
+    isDragging = true;
+    chipEl.style.cursor  = 'grabbing';
+    chipEl.style.opacity = '0.85';
+    chipEl.style.zIndex  = '50';
+
+    function onMove(e) {
+      e.preventDefault();
+      const rect    = field.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      let newX = ((clientX - rect.left - offsetX) / rect.width)  * 100;
+      let newY = ((clientY - rect.top  - offsetY) / rect.height) * 100;
+
+      newX = Math.max(2, Math.min(98, newX));
+      newY = Math.max(2, Math.min(98, newY));
+
+      chipEl.style.left = newX + '%';
+      chipEl.style.top  = newY + '%';
+    }
+
+    function onEnd() {
+      isDragging = false;
+      chipEl.style.cursor  = 'grab';
+      chipEl.style.opacity = '1';
+      chipEl.style.zIndex  = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup',   onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend',  onEnd);
+
+      // Persist final position to the data model
+      const finalX = parseFloat(chipEl.style.left);
+      const finalY = parseFloat(chipEl.style.top);
+      if (!isNaN(finalX)) pos.x = finalX;
+      if (!isNaN(finalY)) pos.y = finalY;
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup',   onEnd);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend',  onEnd,  { passive: false });
+  }
+
+  /* ─────────────────────────────────────────────
+     EDITOR — SAVE
+  ───────────────────────────────────────────── */
+  function submitFormation() {
+    if (!editingFormation) return;
+
+    const name = document.getElementById('f-form-name').value.trim();
+    if (!name) {
+      showToast('Ingresa un nombre para la formación');
+      document.getElementById('f-form-name').focus();
+      return;
+    }
+    if (!editingFormation.positions.length) {
+      showToast('Agrega al menos una posición al campo');
+      return;
+    }
+
+    editingFormation.name = name;
+
+    saveFormation({
+      id:        editingFormation.id,
+      name:      editingFormation.name,
+      unit:      editingFormation.unit,
+      positions: editingFormation.positions,
+    });
+
+    formations = getFormations();
+    cancelEditor();
+    renderList();
+    updateCounter();
+    showToast(`"${name}" guardada ✓`);
+  }
+
+  /* ─────────────────────────────────────────────
+     NAVIGATION
+  ───────────────────────────────────────────── */
+  function goCampo() {
+    const game = getCurrentGame();
+    if (game) {
+      location.href = `grade.html?game=${game.id}`;
+    } else {
+      const games = getGames();
+      if (games.length) {
+        setCurrentGame(games[0].id);
+        location.href = `grade.html?game=${games[0].id}`;
+      } else {
+        showToast('Crea un partido primero');
+      }
+    }
+  }
+
+  function goReport() {
+    const games = getGames();
+    if (!games.length) { showToast('Sin partidos para reportar'); return; }
+    const last = games.slice().sort((a, b) =>
+      (b.date || '').localeCompare(a.date || '')
+    )[0];
+    location.href = `report.html?game=${last.id}`;
+  }
+
+  /* ─────────────────────────────────────────────
+     TOAST
+  ───────────────────────────────────────────── */
+  let _tt;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(_tt);
+    _tt = setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  /* ─────────────────────────────────────────────
+     HELPERS
+  ───────────────────────────────────────────── */
+  function esc(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Reporte — Player Participation</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ══════════════════════════════════════
+       PAGE-SPECIFIC STYLES
+    ══════════════════════════════════════ */
+
+    /* ── HEADER ── */
+    .report-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      flex-shrink: 0;
+    }
+    .rh-back {
+      width: 34px; height: 34px;
+      display: flex; align-items: center; justify-content: center;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 16px;
+      cursor: pointer;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .rh-info { flex: 1; min-width: 0; }
+    .rh-title {
+      font-size: 17px; font-weight: 800;
+      line-height: 1.1;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .rh-sub {
+      font-size: 11px; color: var(--text-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* Export button + dropdown */
+    .export-wrap { position: relative; flex-shrink: 0; }
+    .export-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 7px 12px;
+      background: var(--accent);
+      border: none; border-radius: var(--radius-sm);
+      color: #fff; font-size: 13px; font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .export-dropdown {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      min-width: 180px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.4);
+      z-index: 100;
+      overflow: hidden;
+    }
+    .export-dropdown.hidden { display: none; }
+    .export-opt {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background .1s;
+      border: none; background: none;
+      color: var(--text-primary);
+      width: 100%; text-align: left;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .export-opt:hover { background: rgba(255,255,255,.06); }
+    .export-opt + .export-opt { border-top: 1px solid var(--border); }
+
+    /* ── GAME SELECTOR ── */
+    .game-selector {
+      padding: 20px 16px;
+      max-width: 540px;
+      margin: 0 auto;
+    }
+    .game-sel-title {
+      font-size: 15px; font-weight: 700;
+      margin-bottom: 14px;
+    }
+    .game-sel-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      margin-bottom: 8px;
+      -webkit-tap-highlight-color: transparent;
+      transition: border-color .15s;
+    }
+    .game-sel-row:hover { border-color: var(--accent); }
+    .game-sel-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+    .game-sel-name { font-size: 14px; font-weight: 600; }
+    .game-sel-date { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── FILTERS BAR ── */
+    .filters-bar {
+      display: flex; align-items: center;
+      gap: 10px; flex-wrap: wrap;
+      padding: 10px 14px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 57px;
+      z-index: 30;
+    }
+    .filter-group { display: flex; gap: 0; }
+    .filter-btn {
+      padding: 5px 10px;
+      font-size: 11px; font-weight: 800;
+      letter-spacing: .3px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--text-muted);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .12s, color .12s;
+    }
+    .filter-btn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+    .filter-btn:last-child  { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+    .filter-btn:not(:first-child) { border-left: none; }
+    .filter-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .filter-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px;
+      color: var(--text-muted);
+      align-self: center;
+    }
+
+    /* ── MAIN CONTENT ── */
+    .report-body {
+      padding: 14px 14px 40px;
+      max-width: 900px;
+    }
+
+    /* ── SUMMARY CARDS ── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .summary-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 10px;
+      text-align: center;
+    }
+    .summary-card-value {
+      font-size: 26px; font-weight: 900;
+      line-height: 1.1;
+    }
+    .summary-card-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      line-height: 1.3;
+    }
+
+    /* ── SECTION HEADERS ── */
+    .report-section-title {
+      font-size: 13px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .8px;
+      color: var(--text-muted);
+      margin: 22px 0 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .report-section-title::after {
+      content: '';
+      flex: 1; height: 1px;
+      background: var(--border);
+    }
+
+    /* ── TABLES ── */
+    .report-table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      -webkit-overflow-scrolling: touch;
+    }
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      min-width: 460px;
+    }
+    .report-table th {
+      background: rgba(255,255,255,.04);
+      padding: 8px 10px;
+      text-align: left;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--text-muted);
+      font-weight: 700;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      transition: color .12s;
+    }
+    .report-table th:hover { color: var(--text-primary); }
+    .report-table th.sort-active { color: var(--accent); }
+    .sort-icon { font-size: 9px; margin-left: 3px; opacity: .7; }
+    .report-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .report-table tr:last-child td { border-bottom: none; }
+
+    /* Player row */
+    .player-row { cursor: pointer; transition: background .1s; }
+    .player-row:hover td { background: rgba(255,255,255,.025); }
+    .player-row.expanded td { background: rgba(30,136,229,.07); }
+
+    .player-cell { min-width: 140px; }
+    .player-cell-name {
+      font-size: 13px; font-weight: 600;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .player-num-badge {
+      font-size: 11px; font-weight: 800;
+      color: var(--accent);
+      background: rgba(30,136,229,.12);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    .part-bar-wrap {
+      height: 3px;
+      background: rgba(255,255,255,.08);
+      border-radius: 2px;
+      margin-top: 4px;
+      min-width: 80px;
+    }
+    .part-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--accent);
+    }
+
+    /* Grade cells */
+    .grade-cell {
+      text-align: center;
+      font-weight: 700;
+      font-size: 12px;
+      border-radius: 3px;
+    }
+    .grade-cell.ghi  { background: rgba(67,160,71,.25);  color: #a5d6a7; }
+    .grade-cell.glo  { background: rgba(67,160,71,.10);  color: #81c784; }
+    .grade-cell.rhi  { background: rgba(229,57,53,.25);  color: #ef9a9a; }
+    .grade-cell.rlo  { background: rgba(229,57,53,.10);  color: #e57373; }
+    .grade-cell.zero { color: var(--text-muted); }
+    .grade-cell.bold { font-weight: 900; font-size: 13px; }
+
+    .avg-pos  { color: var(--success); }
+    .avg-neg  { color: var(--danger); }
+    .avg-zero { color: var(--text-muted); }
+
+    /* ── EXPANDED PLAYER DETAIL ── */
+    .detail-row td {
+      padding: 0;
+      background: rgba(30,136,229,.04) !important;
+    }
+    .detail-inner {
+      padding: 12px 14px;
+      border-top: 1px solid var(--border);
+    }
+    .detail-header {
+      font-size: 13px; font-weight: 700;
+      margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .detail-table-wrap {
+      overflow-x: auto;
+      max-height: 260px;
+      overflow-y: auto;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      -webkit-overflow-scrolling: touch;
+    }
+    .detail-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      min-width: 400px;
+    }
+    .detail-table th {
+      background: rgba(255,255,255,.04);
+      padding: 5px 8px;
+      font-size: 9px; text-transform: uppercase;
+      letter-spacing: .4px; color: var(--text-muted);
+      font-weight: 700;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 1;
+    }
+    .detail-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+      text-align: center;
+    }
+    .detail-table td:first-child { text-align: left; }
+    .detail-table tr:last-child td { border-bottom: none; }
+    .detail-table tr { cursor: pointer; transition: background .1s; }
+    .detail-table tr:hover td { background: rgba(255,255,255,.04); }
+    .detail-avg-row td {
+      font-weight: 800;
+      font-size: 11px;
+      background: rgba(255,255,255,.04) !important;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── TIMELINE ── */
+    .timeline-section { margin-top: 20px; }
+    .timeline-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 6px;
+    }
+    .timeline-inner {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      min-width: max-content;
+      padding: 8px 4px 4px;
+    }
+    .timeline-quarter {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      margin-right: 16px;
+    }
+    .timeline-q-label {
+      font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .6px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      padding-left: 2px;
+    }
+    .timeline-dots {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      max-width: 320px;
+    }
+    .tl-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 800;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform .1s, box-shadow .1s;
+      flex-shrink: 0;
+    }
+    .tl-dot:active { transform: scale(.9); }
+    .tl-dot.graded {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(30,136,229,.4);
+    }
+    .tl-dot.ungraded {
+      background: rgba(255,255,255,.1);
+      color: var(--text-muted);
+      border: 1px solid rgba(255,255,255,.1);
+    }
+    .tl-dot.current {
+      box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--accent);
+    }
+    .timeline-counter {
+      font-size: 12px; color: var(--text-muted);
+      margin-top: 10px;
+    }
+    .timeline-counter strong { color: var(--text-primary); }
+
+    /* ── EMPTY STATE ── */
+    .report-empty {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      color: var(--text-muted);
+    }
+    .report-empty-icon { font-size: 40px; margin-bottom: 10px; opacity: .4; }
+
+    /* ── TOAST ── */
+    .toast { bottom: 16px; }
+
+    /* ══════════════════════════════════════
+       PRINT STYLES
+    ══════════════════════════════════════ */
+    @media print {
+      .report-header .export-wrap,
+      .filters-bar,
+      .timeline-section,
+      .toast,
+      .part-bar-wrap,
+      .player-row .expand-icon { display: none !important; }
+
+      html, body {
+        background: #fff !important;
+        color: #000 !important;
+        font-size: 12px;
+        overflow: visible !important;
+        height: auto !important;
+      }
+
+      .report-header {
+        position: static !important;
+        border-bottom: 2px solid #000;
+        background: #fff !important;
+        color: #000 !important;
+        padding: 8px 0 8px;
+        margin-bottom: 12px;
+      }
+      .rh-back { display: none !important; }
+      .rh-title, .rh-sub { color: #000 !important; }
+
+      .report-body { padding: 0; max-width: 100%; }
+
+      .summary-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+      .summary-card {
+        background: #f5f5f5 !important;
+        border: 1px solid #ccc !important;
+        border-radius: 4px;
+        color: #000 !important;
+      }
+      .summary-card-value { font-size: 20px; color: #000 !important; }
+      .summary-card-label { color: #555 !important; }
+
+      .report-section-title {
+        color: #000 !important;
+        font-size: 11px;
+        margin: 14px 0 6px;
+      }
+      .report-section-title::after { background: #000; }
+
+      .report-table-wrap {
+        border: 1px solid #ccc !important;
+        border-radius: 0;
+        overflow: visible !important;
+      }
+      .report-table {
+        min-width: auto !important;
+        page-break-inside: avoid;
+      }
+      .report-table th {
+        background: #f0f0f0 !important;
+        color: #333 !important;
+        border: 1px solid #ccc !important;
+        padding: 4px 6px;
+        font-size: 9px;
+        position: static !important;
+      }
+      .report-table td {
+        border: 1px solid #ddd !important;
+        padding: 4px 6px;
+        color: #000 !important;
+      }
+      .player-cell-name { color: #000 !important; }
+      .player-num-badge { background: #e8f0fe !important; color: #1a56db !important; }
+
+      .grade-cell.ghi  { background: #d4edda !important; color: #155724 !important; }
+      .grade-cell.glo  { background: #e9f7ea !important; color: #1e7e34 !important; }
+      .grade-cell.rhi  { background: #f8d7da !important; color: #721c24 !important; }
+      .grade-cell.rlo  { background: #fde8e9 !important; color: #a02020 !important; }
+      .grade-cell.zero { color: #666 !important; }
+
+      .detail-row { display: none !important; }
+      .player-row.expanded td { background: #fff !important; }
+
+      /* Page breaks */
+      .pb-before { page-break-before: always; }
+
+      /* Print: show all detail rows (special print-only expansion) */
+      .print-detail { display: table-row !important; }
+      .print-detail td {
+        background: #fafafa !important;
+        padding: 0 !important;
+      }
+      .print-detail .detail-inner { padding: 6px 10px; }
+      .print-detail .detail-table-wrap {
+        max-height: none !important;
+        overflow: visible !important;
+        border: 1px solid #ccc;
+      }
+      .print-detail .detail-table th { background: #f0f0f0 !important; color: #333 !important; }
+      .print-detail .detail-table td { color: #000 !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     HEADER
+══════════════════════════════════ -->
+<header class="report-header" id="report-header">
+  <button class="rh-back" onclick="location.href='index.html'">←</button>
+  <div class="rh-info">
+    <div class="rh-title" id="rh-title">Reporte</div>
+    <div class="rh-sub" id="rh-sub">—</div>
+  </div>
+  <div class="export-wrap">
+    <button class="export-btn" onclick="toggleExportDropdown()" id="export-btn">
+      Exportar ▾
+    </button>
+    <div class="export-dropdown hidden" id="export-dropdown">
+      <button class="export-opt" onclick="exportPDF()">📄 Descargar PDF</button>
+      <button class="export-opt" onclick="exportCSV()">📊 Descargar CSV</button>
+      <button class="export-opt" onclick="shareReport()">📤 Compartir</button>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════
+     FILTERS BAR
+══════════════════════════════════ -->
+<div class="filters-bar" id="filters-bar">
+  <span class="filter-label">Unidad:</span>
+  <div class="filter-group">
+    <button class="filter-btn" id="fu-ofe"  onclick="setUnitFilter('OFE')">OFE</button>
+    <button class="filter-btn" id="fu-def"  onclick="setUnitFilter('DEF')">DEF</button>
+    <button class="filter-btn" id="fu-st"   onclick="setUnitFilter('ST')">ST</button>
+    <button class="filter-btn active" id="fu-all" onclick="setUnitFilter('all')">Todos</button>
+  </div>
+  <span class="filter-label" style="margin-left:6px">Q:</span>
+  <div class="filter-group">
+    <button class="filter-btn" id="fq-1"   onclick="setQuarterFilter('1')">1</button>
+    <button class="filter-btn" id="fq-2"   onclick="setQuarterFilter('2')">2</button>
+    <button class="filter-btn" id="fq-3"   onclick="setQuarterFilter('3')">3</button>
+    <button class="filter-btn" id="fq-4"   onclick="setQuarterFilter('4')">4</button>
+    <button class="filter-btn active" id="fq-all" onclick="setQuarterFilter('all')">Todos</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     REPORT BODY
+══════════════════════════════════ -->
+<div class="report-body" id="report-body">
+
+  <!-- Game selector shown when no game is selected -->
+  <div id="game-selector" class="game-selector hidden">
+    <div class="game-sel-title">Selecciona un partido</div>
+    <div id="game-sel-list"></div>
+  </div>
+
+  <!-- Report content (hidden until game is selected) -->
+  <div id="report-content" class="hidden">
+
+    <!-- ── SECTION 1: SUMMARY ── -->
+    <div class="summary-grid" id="summary-grid">
+      <!-- Rendered by JS -->
+    </div>
+
+    <!-- ── SECTION 2: PARTICIPATION ── -->
+    <div class="report-section-title">Participación por jugador</div>
+    <div class="report-table-wrap">
+      <table class="report-table" id="participation-table">
+        <thead>
+          <tr>
+            <th onclick="sortBy('name')"    id="th-name">Jugador <span class="sort-icon" id="si-name"></span></th>
+            <th onclick="sortBy('position')"id="th-position">Pos <span class="sort-icon" id="si-position"></span></th>
+            <th onclick="sortBy('snaps')"   id="th-snaps">Snaps <span class="sort-icon" id="si-snaps">▼</span></th>
+            <th onclick="sortBy('pct')"     id="th-pct">% Part <span class="sort-icon" id="si-pct"></span></th>
+            <th onclick="sortBy('avg')"     id="th-avg">Avg Grade <span class="sort-icon" id="si-avg"></span></th>
+          </tr>
+        </thead>
+        <tbody id="participation-tbody">
+          <!-- Rendered by JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── SECTION 3: GRADES BY CATEGORY ── -->
+    <div class="report-section-title pb-before">Grades por categoría</div>
+    <div class="report-table-wrap">
+      <table class="report-table" id="grades-table">
+        <thead>
+          <tr>
+            <th onclick="sortGrades('name')"     id="gth-name">Jugador <span class="sort-icon" id="gsi-name"></span></th>
+            <th onclick="sortGrades('asig')"     id="gth-asig">Asig <span class="sort-icon" id="gsi-asig"></span></th>
+            <th onclick="sortGrades('ejec')"     id="gth-ejec">Ejec <span class="sort-icon" id="gsi-ejec"></span></th>
+            <th onclick="sortGrades('decis')"    id="gth-decis">Decis <span class="sort-icon" id="gsi-decis"></span></th>
+            <th onclick="sortGrades('impacto')"  id="gth-impacto">Impacto <span class="sort-icon" id="gsi-impacto"></span></th>
+            <th onclick="sortGrades('disc')"     id="gth-disc">Disc <span class="sort-icon" id="gsi-disc"></span></th>
+            <th onclick="sortGrades('total')"    id="gth-total">Total <span class="sort-icon" id="gsi-total"></span></th>
+          </tr>
+        </thead>
+        <tbody id="grades-tbody">
+          <!-- Rendered by JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── SECTION 5: TIMELINE ── -->
+    <div class="report-section-title timeline-section">Timeline de jugadas</div>
+    <div class="timeline-wrap">
+      <div class="timeline-inner" id="timeline-inner"></div>
+    </div>
+    <div class="timeline-counter" id="timeline-counter"></div>
+
+  </div><!-- /report-content -->
+
+</div><!-- /report-body -->
+
+<!-- ══════════════════════════════════
+     TOAST
+══════════════════════════════════ -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════════
+     SCRIPTS
+══════════════════════════════════ -->
+<script src="app.js"></script>
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════ */
+let currentGame     = null;
+let plays           = [];
+let roster          = [];
+let activeUnit      = 'all';
+let activeQuarter   = 'all';
+let expandedPlayerId = null;
+let sortColumn      = 'snaps';
+let sortDir         = 'desc';
+let gradesSortCol   = 'total';
+let gradesSortDir   = 'desc';
+
+/* ═══════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(location.search);
+  const gameId = params.get('game');
+  if (gameId) {
+    currentGame = getGame(gameId);
+    if (currentGame) setCurrentGame(gameId);
+  }
+  if (!currentGame) currentGame = getCurrentGame();
+
+  if (!currentGame) {
+    showGameSelector();
+    return;
+  }
+
+  plays  = getPlays(currentGame.id);
+  roster = getRoster();
+  renderHeader();
+  document.getElementById('report-content').classList.remove('hidden');
+  renderAll();
+
+  // Close export dropdown on outside click
+  document.addEventListener('click', (e) => {
+    if (!document.getElementById('export-wrap') &&
+        !e.target.closest('.export-wrap')) {
+      document.getElementById('export-dropdown').classList.add('hidden');
+    }
+  });
+});
+
+/* ═══════════════════════════════════════════════════
+   GAME SELECTOR
+═══════════════════════════════════════════════════ */
+function showGameSelector() {
+  document.getElementById('filters-bar').classList.add('hidden');
+  document.getElementById('game-selector').classList.remove('hidden');
+  const games = getGames();
+  const list  = document.getElementById('game-sel-list');
+  if (!games.length) {
+    list.innerHTML = `<div class="report-empty"><div class="report-empty-icon">📋</div>Sin partidos registrados</div>`;
+    return;
+  }
+  list.innerHTML = games.map(g => {
+    const rival   = g.opponent ? `${g.name} vs ${g.opponent}` : g.name;
+    const dateFmt = g.date ? formatDate(g.date) : '';
+    return `
+      <div class="game-sel-row" onclick="selectGame('${g.id}')">
+        <div class="game-sel-dot"></div>
+        <div>
+          <div class="game-sel-name">${esc(rival)}</div>
+          ${dateFmt ? `<div class="game-sel-date">${esc(dateFmt)}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectGame(id) {
+  currentGame = getGame(id);
+  if (!currentGame) return;
+  setCurrentGame(id);
+  plays  = getPlays(id);
+  roster = getRoster();
+  document.getElementById('game-selector').classList.add('hidden');
+  document.getElementById('filters-bar').classList.remove('hidden');
+  document.getElementById('report-content').classList.remove('hidden');
+  renderHeader();
+  renderAll();
+}
+
+/* ═══════════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════════ */
+function renderHeader() {
+  const rival = currentGame.opponent
+    ? `${localStorage.getItem('pp_team_name') || 'Local'} vs ${currentGame.opponent}`
+    : currentGame.name;
+  document.getElementById('rh-title').textContent = rival;
+  const sub = [
+    currentGame.date ? formatDate(currentGame.date) : '',
+    plays.length ? `${plays.length} jugadas` : '',
+  ].filter(Boolean).join(' • ');
+  document.getElementById('rh-sub').textContent = sub;
+  document.title = `Reporte — ${rival}`;
+}
+
+/* ═══════════════════════════════════════════════════
+   FILTERS
+═══════════════════════════════════════════════════ */
+function setUnitFilter(unit) {
+  activeUnit = unit;
+  ['ofe','def','st','all'].forEach(k => {
+    document.getElementById(`fu-${k}`).classList.toggle('active', k === unit.toLowerCase());
+  });
+  expandedPlayerId = null;
+  renderAll();
+}
+
+function setQuarterFilter(q) {
+  activeQuarter = q;
+  ['1','2','3','4','all'].forEach(k => {
+    document.getElementById(`fq-${k}`).classList.toggle('active', k === q);
+  });
+  expandedPlayerId = null;
+  renderAll();
+}
+
+/* ═══════════════════════════════════════════════════
+   FILTERED PLAYS
+═══════════════════════════════════════════════════ */
+function getFilteredPlays() {
+  return plays.filter(p => {
+    if (activeUnit !== 'all' && p.unit && p.unit !== activeUnit) return false;
+    if (activeQuarter !== 'all' && p.quarter && String(p.quarter) !== activeQuarter) return false;
+    return true;
+  });
+}
+
+/* ═══════════════════════════════════════════════════
+   COMPUTE PLAYER STATS
+═══════════════════════════════════════════════════ */
+const GRADE_CATS = ['asignacion','ejecucion','decision','impacto','disciplina'];
+
+function computePlayerStats() {
+  const filtered = getFilteredPlays();
+  const statsMap  = {};  // playerId → stats object
+
+  for (const play of filtered) {
+    if (!play.lineup) continue;
+    for (const [posId, playerId] of Object.entries(play.lineup)) {
+      if (!playerId) continue;
+      if (!statsMap[playerId]) {
+        statsMap[playerId] = {
+          snaps: 0,
+          gradeVals: { asignacion:[], ejecucion:[], decision:[], impacto:[], disciplina:[] },
+        };
+      }
+      statsMap[playerId].snaps++;
+
+      // Collect grades
+      if (play.grades && play.grades[playerId]) {
+        const g = play.grades[playerId];
+        for (const cat of GRADE_CATS) {
+          if (g[cat] !== undefined && g[cat] !== null) {
+            statsMap[playerId].gradeVals[cat].push(g[cat]);
+          }
+        }
+      }
+    }
+  }
+
+  const totalPlays = filtered.length || 1;
+  const result = [];
+
+  for (const player of roster) {
+    // Filter by unit if set
+    if (activeUnit !== 'all' && player.unit !== activeUnit) continue;
+
+    const st = statsMap[player.id];
+    if (!st || st.snaps === 0) continue;
+
+    const avgs = {};
+    let allVals = [];
+    for (const cat of GRADE_CATS) {
+      const vals = st.gradeVals[cat];
+      avgs[cat] = vals.length > 0 ? avg(vals) : null;
+      allVals = allVals.concat(vals);
+    }
+    const avgTotal = allVals.length > 0 ? avg(allVals) : null;
+
+    result.push({
+      id:             player.id,
+      number:         player.number,
+      name:           player.name,
+      position:       player.position || '',
+      unit:           player.unit || '',
+      snaps:          st.snaps,
+      participationPct: Math.round((st.snaps / totalPlays) * 100),
+      avgAsig:    avgs.asignacion,
+      avgEjec:    avgs.ejecucion,
+      avgDecis:   avgs.decision,
+      avgImpacto: avgs.impacto,
+      avgDisc:    avgs.disciplina,
+      avgTotal,
+    });
+  }
+
+  return result;
+}
+
+function avg(arr) {
+  if (!arr.length) return null;
+  return arr.reduce((a, b) => a + b, 0) / arr.length;
+}
+
+/* ═══════════════════════════════════════════════════
+   COMPUTE SUMMARY
+═══════════════════════════════════════════════════ */
+function computeSummary(stats) {
+  const filtered = getFilteredPlays();
+  const totalPlays = filtered.length;
+  const activePlayers = stats.length;
+  const avgSnaps = activePlayers > 0
+    ? (stats.reduce((s, p) => s + p.snaps, 0) / activePlayers)
+    : 0;
+
+  // Global grade average (all grade values across all filtered plays)
+  let allGradeVals = [];
+  for (const play of filtered) {
+    if (!play.grades || !play.lineup) continue;
+    for (const playerId of Object.values(play.lineup)) {
+      if (!playerId || !play.grades[playerId]) continue;
+      const g = play.grades[playerId];
+      for (const cat of GRADE_CATS) {
+        if (g[cat] !== undefined && g[cat] !== null) {
+          allGradeVals.push(g[cat]);
+        }
+      }
+    }
+  }
+  const globalAvg = allGradeVals.length > 0 ? avg(allGradeVals) : null;
+
+  return { totalPlays, activePlayers, avgSnaps, globalAvg };
+}
+
+/* ═══════════════════════════════════════════════════
+   RENDER ALL
+═══════════════════════════════════════════════════ */
+function renderAll() {
+  const stats = computePlayerStats();
+  const summary = computeSummary(stats);
+  renderSummaryCards(summary);
+  renderParticipationTable(stats);
+  renderGradesTable(stats);
+  renderTimeline();
+}
+
+/* ═══════════════════════════════════════════════════
+   SUMMARY CARDS
+═══════════════════════════════════════════════════ */
+function renderSummaryCards(summary) {
+  const { totalPlays, activePlayers, avgSnaps, globalAvg } = summary;
+
+  const avgGradeDisp = globalAvg !== null
+    ? `<span class="${globalAvg > 0 ? 'avg-pos' : globalAvg < 0 ? 'avg-neg' : 'avg-zero'}">${fmtGrade(globalAvg)}</span>`
+    : '<span style="color:var(--text-muted)">—</span>';
+
+  document.getElementById('summary-grid').innerHTML = `
+    <div class="summary-card">
+      <div class="summary-card-value">${totalPlays}</div>
+      <div class="summary-card-label">Jugadas</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-value">${activePlayers}</div>
+      <div class="summary-card-label">Jugadores activos</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-value">${activePlayers > 0 ? avgSnaps.toFixed(1) : '—'}</div>
+      <div class="summary-card-label">Snaps promedio</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-value">${avgGradeDisp}</div>
+      <div class="summary-card-label">Grade promedio</div>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════════════
+   PARTICIPATION TABLE
+═══════════════════════════════════════════════════ */
+function sortBy(col) {
+  if (sortColumn === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortColumn = col; sortDir = col === 'name' ? 'asc' : 'desc'; }
+  renderParticipationTable(computePlayerStats());
+}
+
+function sortStats(stats, col, dir) {
+  return [...stats].sort((a, b) => {
+    let av, bv;
+    switch (col) {
+      case 'name':     av = a.name;     bv = b.name;     break;
+      case 'position': av = a.position; bv = b.position; break;
+      case 'snaps':    av = a.snaps;    bv = b.snaps;    break;
+      case 'pct':      av = a.participationPct; bv = b.participationPct; break;
+      case 'avg':      av = a.avgTotal ?? -99;  bv = b.avgTotal ?? -99;  break;
+      default:         av = a.snaps;    bv = b.snaps;
+    }
+    if (typeof av === 'string') {
+      return dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    }
+    return dir === 'asc' ? av - bv : bv - av;
+  });
+}
+
+function renderParticipationTable(stats) {
+  if (!stats) stats = computePlayerStats();
+  const sorted = sortStats(stats, sortColumn, sortDir);
+  updateSortIcons('si', sortColumn, sortDir, ['name','position','snaps','pct','avg']);
+
+  if (!sorted.length) {
+    document.getElementById('participation-tbody').innerHTML =
+      `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px">Sin datos para los filtros seleccionados</td></tr>`;
+    return;
+  }
+
+  const filtered = getFilteredPlays();
+  const totalPlays = filtered.length;
+
+  let html = '';
+  for (const p of sorted) {
+    const isExpanded = expandedPlayerId === p.id;
+    const avgDisp    = p.avgTotal !== null ? fmtGrade(p.avgTotal) : '—';
+    const avgCls     = p.avgTotal !== null ? (p.avgTotal > 0 ? 'avg-pos' : p.avgTotal < 0 ? 'avg-neg' : 'avg-zero') : '';
+    const arrow      = p.avgTotal !== null ? (p.avgTotal > 0 ? ' ▲' : p.avgTotal < 0 ? ' ▼' : '') : '';
+    const pct        = Math.min(100, p.participationPct);
+
+    html += `
+      <tr class="player-row${isExpanded ? ' expanded' : ''}" onclick="togglePlayerDetail('${p.id}')">
+        <td class="player-cell">
+          <div class="player-cell-name">
+            <span class="player-num-badge">#${esc(p.number)}</span>
+            ${esc(p.name)}
+            <span class="expand-icon" style="margin-left:auto;color:var(--text-muted);font-size:10px">${isExpanded ? '▲' : '▼'}</span>
+          </div>
+          <div class="part-bar-wrap"><div class="part-bar-fill" style="width:${pct}%"></div></div>
+        </td>
+        <td style="color:var(--text-muted);font-size:12px">${esc(p.position)}</td>
+        <td style="font-weight:700">${p.snaps}</td>
+        <td style="font-weight:600">${p.participationPct}%</td>
+        <td class="${avgCls}" style="font-weight:700">${avgDisp}${arrow}</td>
+      </tr>`;
+
+    // Expanded detail
+    if (isExpanded) {
+      html += buildPlayerDetailRow(p, totalPlays);
+    }
+    // Print-only version (always present, hidden by CSS in screen)
+    html += buildPlayerDetailRow(p, totalPlays, true);
+  }
+
+  document.getElementById('participation-tbody').innerHTML = html;
+}
+
+function togglePlayerDetail(playerId) {
+  expandedPlayerId = expandedPlayerId === playerId ? null : playerId;
+  renderParticipationTable();
+}
+
+function buildPlayerDetailRow(p, totalPlays, printOnly = false) {
+  const filtered = getFilteredPlays();
+  const playerPlays = filtered
+    .map((play, idx) => ({ play, origIdx: plays.indexOf(play), idx }))
+    .filter(({ play }) => play.lineup && play.lineup && Object.values(play.lineup).includes(p.id));
+
+  if (!playerPlays.length) {
+    return `<tr class="${printOnly ? 'print-detail' : 'detail-row'}${printOnly ? '' : ''}"><td colspan="5"><div class="detail-inner"><span style="color:var(--text-muted);font-size:12px">Sin snaps en esta selección</span></div></td></tr>`;
+  }
+
+  // Per-play grade rows
+  let rowsHtml = '';
+  const catAvgs = { asignacion:[], ejecucion:[], decision:[], impacto:[], disciplina:[] };
+
+  for (const { play, origIdx } of playerPlays) {
+    const g = (play.grades && play.grades[p.id]) ? play.grades[p.id] : {};
+    for (const cat of GRADE_CATS) {
+      if (g[cat] !== undefined && g[cat] !== null) catAvgs[cat].push(g[cat]);
+    }
+
+    const playNum = play.playNumber || (origIdx + 1);
+    const q       = play.quarter  ? `Q${play.quarter}` : '—';
+    const dn      = play.down && play.toFirst ? `${play.down}&${play.toFirst}` : (play.down || '—');
+    const form    = play.formation ? esc(play.formation) : '—';
+    const catCells = GRADE_CATS.map(cat => {
+      const v = g[cat];
+      if (v === undefined || v === null) return `<td style="color:var(--text-muted)">—</td>`;
+      const sign = v > 0 ? '+' : '';
+      const cls  = v > 0 ? 'avg-pos' : v < 0 ? 'avg-neg' : 'avg-zero';
+      return `<td class="${cls}" style="font-weight:700">${sign}${v}</td>`;
+    }).join('');
+
+    rowsHtml += `
+      <tr onclick="goToPlay(${origIdx})" title="Ir a jugada ${playNum}">
+        <td style="color:var(--text-muted)">${playNum}</td>
+        <td style="color:var(--text-muted)">${q}</td>
+        <td style="color:var(--text-muted)">${dn}</td>
+        <td>${form}</td>
+        ${catCells}
+      </tr>`;
+  }
+
+  // Average row
+  const avgCells = GRADE_CATS.map(cat => {
+    const vals = catAvgs[cat];
+    if (!vals.length) return `<td style="color:var(--text-muted)">—</td>`;
+    const a = avg(vals);
+    const sign = a > 0 ? '+' : '';
+    const cls  = a > 0 ? 'avg-pos' : a < 0 ? 'avg-neg' : 'avg-zero';
+    return `<td class="${cls}">${sign}${a.toFixed(1)}</td>`;
+  }).join('');
+
+  const trClass = printOnly ? 'print-detail' : 'detail-row';
+  return `
+    <tr class="${trClass}">
+      <td colspan="5">
+        <div class="detail-inner">
+          <div class="detail-header">
+            ▾ #${esc(p.number)} ${esc(p.name)} — ${esc(p.position)} — ${playerPlays.length} snaps
+          </div>
+          <div class="detail-table-wrap">
+            <table class="detail-table">
+              <thead>
+                <tr>
+                  <th>#</th><th>Q</th><th>Down</th><th>Formation</th>
+                  <th>Asig</th><th>Ejec</th><th>Decis</th><th>Imp</th><th>Disc</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+                <tr class="detail-avg-row">
+                  <td colspan="4" style="text-align:right;color:var(--text-muted)">Promedio</td>
+                  ${avgCells}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+}
+
+/* ═══════════════════════════════════════════════════
+   GRADES TABLE
+═══════════════════════════════════════════════════ */
+function sortGrades(col) {
+  if (gradesSortCol === col) gradesSortDir = gradesSortDir === 'asc' ? 'desc' : 'asc';
+  else { gradesSortCol = col; gradesSortDir = col === 'name' ? 'asc' : 'desc'; }
+  renderGradesTable();
+}
+
+function renderGradesTable(stats) {
+  if (!stats) stats = computePlayerStats();
+  updateSortIcons('gsi', gradesSortCol, gradesSortDir,
+    ['name','asig','ejec','decis','impacto','disc','total']);
+
+  const sorted = [...stats].sort((a, b) => {
+    const map = {
+      name:    [a.name, b.name],
+      asig:    [a.avgAsig    ?? -99, b.avgAsig    ?? -99],
+      ejec:    [a.avgEjec    ?? -99, b.avgEjec    ?? -99],
+      decis:   [a.avgDecis   ?? -99, b.avgDecis   ?? -99],
+      impacto: [a.avgImpacto ?? -99, b.avgImpacto ?? -99],
+      disc:    [a.avgDisc    ?? -99, b.avgDisc    ?? -99],
+      total:   [a.avgTotal   ?? -99, b.avgTotal   ?? -99],
+    };
+    const [av, bv] = map[gradesSortCol] ?? [a.avgTotal ?? -99, b.avgTotal ?? -99];
+    if (typeof av === 'string') {
+      return gradesSortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    }
+    return gradesSortDir === 'asc' ? av - bv : bv - av;
+  });
+
+  if (!sorted.length) {
+    document.getElementById('grades-tbody').innerHTML =
+      `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px">Sin datos</td></tr>`;
+    return;
+  }
+
+  document.getElementById('grades-tbody').innerHTML = sorted.map(p => {
+    const cells = [
+      p.avgAsig, p.avgEjec, p.avgDecis, p.avgImpacto, p.avgDisc
+    ].map(v => gradeCellHtml(v)).join('');
+    const total = gradeCellHtml(p.avgTotal, true);
+    return `
+      <tr>
+        <td class="player-cell">
+          <div class="player-cell-name">
+            <span class="player-num-badge">#${esc(p.number)}</span>
+            ${esc(p.name)}
+          </div>
+        </td>
+        ${cells}
+        ${total}
+      </tr>`;
+  }).join('');
+}
+
+function gradeCellHtml(val, bold = false) {
+  if (val === null || val === undefined) {
+    return `<td class="grade-cell zero${bold ? ' bold' : ''}">—</td>`;
+  }
+  let cls = 'grade-cell ';
+  if (val >= 1.0)       cls += 'ghi';
+  else if (val > 0)     cls += 'glo';
+  else if (val === 0)   cls += 'zero';
+  else if (val > -1.0)  cls += 'rlo';
+  else                  cls += 'rhi';
+  if (bold) cls += ' bold';
+  const sign = val > 0 ? '+' : '';
+  return `<td class="${cls}">${sign}${val.toFixed(1)}</td>`;
+}
+
+/* ═══════════════════════════════════════════════════
+   TIMELINE
+═══════════════════════════════════════════════════ */
+function renderTimeline() {
+  const filtered    = getFilteredPlays();
+  const totalPlays  = filtered.length;
+  const gradedCount = filtered.filter(p => isPlayGraded(p)).length;
+
+  // Group by quarter
+  const quarters = {};
+  for (const play of filtered) {
+    const q = play.quarter || '?';
+    if (!quarters[q]) quarters[q] = [];
+    quarters[q].push(play);
+  }
+
+  const inner = document.getElementById('timeline-inner');
+  inner.innerHTML = '';
+
+  const sortedQs = Object.keys(quarters).sort((a, b) => {
+    const na = isNaN(a) ? 99 : Number(a);
+    const nb = isNaN(b) ? 99 : Number(b);
+    return na - nb;
+  });
+
+  for (const q of sortedQs) {
+    const qPlays = quarters[q];
+    const wrap = document.createElement('div');
+    wrap.className = 'timeline-quarter';
+    wrap.innerHTML = `<div class="timeline-q-label">Q${q}</div>`;
+    const dots = document.createElement('div');
+    dots.className = 'timeline-dots';
+    for (const play of qPlays) {
+      const origIdx = plays.indexOf(play);
+      const graded  = isPlayGraded(play);
+      const dot = document.createElement('div');
+      dot.className = `tl-dot ${graded ? 'graded' : 'ungraded'}`;
+      dot.title = `Jugada ${play.playNumber || origIdx + 1}`;
+      dot.textContent = play.playNumber || (origIdx + 1);
+      dot.addEventListener('click', () => goToPlay(origIdx));
+      dots.appendChild(dot);
+    }
+    wrap.appendChild(dots);
+    inner.appendChild(wrap);
+  }
+
+  document.getElementById('timeline-counter').innerHTML =
+    `<strong>${gradedCount}</strong> / ${totalPlays} jugadas gradeadas`;
+}
+
+function isPlayGraded(play) {
+  if (!play.grades || !play.lineup) return false;
+  return Object.values(play.lineup).some(pid => pid && play.grades[pid] &&
+    GRADE_CATS.some(cat => play.grades[pid][cat] !== undefined && play.grades[pid][cat] !== null));
+}
+
+/* ═══════════════════════════════════════════════════
+   NAVIGATION TO PLAY
+═══════════════════════════════════════════════════ */
+function goToPlay(playIndex) {
+  if (!currentGame) return;
+  location.href = `grade.html?game=${currentGame.id}&play=${playIndex}`;
+}
+
+/* ═══════════════════════════════════════════════════
+   SORT ICON HELPER
+═══════════════════════════════════════════════════ */
+function updateSortIcons(prefix, activeCol, dir, cols) {
+  for (const col of cols) {
+    const el = document.getElementById(`${prefix}-${col}`);
+    if (!el) continue;
+    if (col === activeCol) {
+      el.textContent = dir === 'asc' ? '▲' : '▼';
+      el.style.opacity = '1';
+    } else {
+      el.textContent = '';
+    }
+    const th = el.closest('th');
+    if (th) th.classList.toggle('sort-active', col === activeCol);
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   EXPORT — PDF
+═══════════════════════════════════════════════════ */
+function exportPDF() {
+  hideDropdown();
+  // Expand all players for print
+  document.querySelectorAll('.print-detail').forEach(el => {
+    el.style.display = 'table-row';
+  });
+  window.print();
+  setTimeout(() => {
+    document.querySelectorAll('.print-detail').forEach(el => {
+      el.style.display = '';
+    });
+  }, 1000);
+}
+
+/* ═══════════════════════════════════════════════════
+   EXPORT — CSV
+═══════════════════════════════════════════════════ */
+function exportCSV() {
+  hideDropdown();
+  const stats = computePlayerStats();
+  const rows  = [
+    ['Jugador','#','Posición','Unidad','Snaps','%Part',
+     'Avg Asig','Avg Ejec','Avg Decis','Avg Impacto','Avg Disc','Avg Total'],
+  ];
+  for (const p of stats) {
+    rows.push([
+      p.name, p.number, p.position, p.unit,
+      p.snaps, p.participationPct,
+      fmtCSV(p.avgAsig), fmtCSV(p.avgEjec), fmtCSV(p.avgDecis),
+      fmtCSV(p.avgImpacto), fmtCSV(p.avgDisc), fmtCSV(p.avgTotal),
+    ]);
+  }
+  const csv  = rows.map(r => r.map(csvField).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `PP_${(currentGame.name || 'reporte').replace(/\s+/g,'_')}_${currentGame.date || ''}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV descargado ✓');
+}
+
+function fmtCSV(val) {
+  if (val === null || val === undefined) return '';
+  return val.toFixed(2);
+}
+
+function csvField(v) {
+  const s = String(v ?? '');
+  return s.includes(',') || s.includes('"') || s.includes('\n')
+    ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/* ═══════════════════════════════════════════════════
+   SHARE
+═══════════════════════════════════════════════════ */
+async function shareReport() {
+  hideDropdown();
+  const text = buildShareSummary();
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: `Reporte ${currentGame.name || ''}`,
+        text,
+      });
+    } catch (e) {
+      if (e.name !== 'AbortError') fallbackCopy(text);
+    }
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => showToast('Resumen copiado al portapapeles'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Resumen copiado al portapapeles');
+  }
+}
+
+function buildShareSummary() {
+  const rival = currentGame.opponent
+    ? `${localStorage.getItem('pp_team_name') || 'Local'} vs ${currentGame.opponent}`
+    : currentGame.name;
+  const dateFmt = currentGame.date ? formatDate(currentGame.date) : '';
+  const filtered = getFilteredPlays();
+  const gradedCount = filtered.filter(isPlayGraded).length;
+  const stats = computePlayerStats();
+
+  const lines = [
+    `${rival}${dateFmt ? ' — ' + dateFmt : ''}`,
+    `Jugadas gradeadas: ${gradedCount}/${filtered.length}`,
+    '',
+  ];
+
+  // Top performers (top 3 by avg total)
+  const withGrade = stats.filter(p => p.avgTotal !== null)
+    .sort((a, b) => b.avgTotal - a.avgTotal);
+  if (withGrade.length) {
+    lines.push('TOP PERFORMERS:');
+    withGrade.slice(0, 3).forEach(p => {
+      lines.push(`🏆 #${p.number} ${p.name} — ${p.position} — ${fmtGrade(p.avgTotal)} avg`);
+    });
+    lines.push('');
+  }
+
+  // Participation
+  const bySnaps = [...stats].sort((a, b) => b.snaps - a.snaps);
+  if (bySnaps.length) {
+    lines.push('PARTICIPACIÓN:');
+    bySnaps.slice(0, 8).forEach(p => {
+      lines.push(`#${p.number} ${p.name} — ${p.participationPct}% (${p.snaps} snaps)`);
+    });
+  }
+
+  return lines.join('\n');
+}
+
+/* ═══════════════════════════════════════════════════
+   EXPORT DROPDOWN
+═══════════════════════════════════════════════════ */
+function toggleExportDropdown() {
+  document.getElementById('export-dropdown').classList.toggle('hidden');
+}
+
+function hideDropdown() {
+  document.getElementById('export-dropdown').classList.add('hidden');
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.export-wrap')) hideDropdown();
+});
+
+/* ═══════════════════════════════════════════════════
+   GRADE FORMAT HELPER
+═══════════════════════════════════════════════════ */
+function fmtGrade(val) {
+  if (val === null || val === undefined) return '—';
+  const sign = val > 0 ? '+' : '';
+  return sign + val.toFixed(1);
+}
+
+/* ═══════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════ */
+let _toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+/* ═══════════════════════════════════════════════════
+   ESCAPE HELPER
+═══════════════════════════════════════════════════ */
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+
+</body>
+</html>

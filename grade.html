@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Campo — Player Participation</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ── GRADE PAGE LAYOUT ── */
+    html, body { height: 100%; overflow: hidden; }
+
+    .grade-layout {
+      display: grid;
+      grid-template-columns: 60% 40%;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    /* ── LEFT PANEL ── */
+    .panel-left {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+      background: var(--bg-app);
+      border-right: 1px solid var(--border);
+    }
+
+    /* Sub-header */
+    .play-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    .play-header-back {
+      width: 34px; height: 34px;
+      display: flex; align-items: center; justify-content: center;
+      background: none; border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary); font-size: 16px;
+      cursor: pointer; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .play-header-info {
+      flex: 1; min-width: 0;
+    }
+    .play-counter {
+      font-size: 14px; font-weight: 800;
+      line-height: 1.1;
+    }
+    .play-match {
+      font-size: 11px; color: var(--text-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .unit-toggle {
+      display: flex;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .unit-btn {
+      padding: 5px 10px;
+      font-size: 11px; font-weight: 800;
+      letter-spacing: .4px;
+      border: none; background: rgba(255,255,255,.04);
+      color: var(--text-muted); cursor: pointer;
+      transition: background .15s, color .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .unit-btn.active-ofe { background: var(--accent); color: #fff; }
+    .unit-btn.active-def { background: var(--danger); color: #fff; }
+
+    .play-nav-btns {
+      display: flex; gap: 4px; flex-shrink: 0;
+    }
+    .play-nav-btn {
+      width: 34px; height: 34px;
+      display: flex; align-items: center; justify-content: center;
+      background: none; border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary); font-size: 16px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity .15s;
+    }
+    .play-nav-btn:disabled { opacity: .25; cursor: default; }
+
+    /* Data bar */
+    .play-data-bar {
+      display: flex; align-items: center; flex-wrap: wrap;
+      gap: 0; padding: 5px 10px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px; color: var(--text-muted);
+      flex-shrink: 0;
+      min-height: 28px;
+    }
+    .data-item {
+      display: inline-flex; align-items: center; gap: 0;
+      white-space: nowrap;
+    }
+    .data-item + .data-item::before {
+      content: '•'; margin: 0 5px; opacity: .4;
+    }
+    .data-item strong { color: var(--text-primary); font-weight: 700; }
+    .badge-noplay {
+      display: inline-flex; align-items: center;
+      padding: 1px 7px; border-radius: 4px;
+      background: rgba(251,140,0,.18); color: var(--warn);
+      font-size: 10px; font-weight: 800;
+      letter-spacing: .4px; text-transform: uppercase;
+    }
+    .badge-penalty {
+      display: inline-flex; align-items: center;
+      padding: 1px 7px; border-radius: 4px;
+      background: rgba(229,57,53,.18); color: var(--danger);
+      font-size: 10px; font-weight: 800;
+      letter-spacing: .4px; text-transform: uppercase;
+    }
+    .badge-formation-change {
+      display: inline-flex; align-items: center;
+      padding: 1px 7px; border-radius: 4px;
+      background: rgba(251,140,0,.15); color: var(--warn);
+      font-size: 10px; font-weight: 700;
+      letter-spacing: .3px; margin-left: 6px;
+    }
+
+    /* Field */
+    .field-container {
+      width: 100%;
+      aspect-ratio: 16 / 7;
+      max-height: 65vh;
+      position: relative;
+      overflow: hidden;
+      background-color: var(--bg-field);
+      background-image: url('35_NCAA_Field_Player_Participation.png');
+      background-size: cover;
+      background-position: center center;
+      flex-shrink: 0;
+    }
+    .field-container::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,.12);
+      z-index: 1; pointer-events: none;
+    }
+
+    /* Field bottom controls */
+    .field-controls {
+      position: absolute;
+      bottom: 10px; left: 10px; right: 10px;
+      display: flex; align-items: flex-end;
+      justify-content: space-between;
+      z-index: 20;
+      pointer-events: none;
+    }
+    .field-controls > * { pointer-events: auto; }
+    .field-controls-right { display: flex; gap: 6px; }
+
+    .btn-move {
+      padding: 7px 14px;
+      font-size: 12px; font-weight: 800;
+      border: 2px solid rgba(255,255,255,.3);
+      border-radius: var(--radius-sm);
+      background: rgba(15,17,23,.75);
+      color: var(--text-muted); cursor: pointer;
+      backdrop-filter: blur(4px);
+      -webkit-tap-highlight-color: transparent;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+    .btn-move.active {
+      background: var(--warn);
+      border-color: var(--warn);
+      color: #fff;
+    }
+    .btn-field-sm {
+      padding: 6px 10px;
+      font-size: 11px; font-weight: 800;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: var(--radius-sm);
+      background: rgba(15,17,23,.75);
+      color: var(--text-muted); cursor: pointer;
+      backdrop-filter: blur(4px);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── RIGHT PANEL ── */
+    .panel-right {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+      background: var(--bg-panel);
+    }
+
+    .right-panel-body {
+      flex: 1; overflow-y: auto;
+      padding: 16px;
+    }
+
+    /* Empty / no chip state */
+    .rp-empty {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 100%; text-align: center;
+      color: var(--text-muted); padding: 2rem;
+    }
+    .rp-empty-icon { font-size: 40px; margin-bottom: 10px; opacity: .4; }
+    .rp-empty-text { font-size: 14px; line-height: 1.7; }
+
+    /* Player card */
+    .player-header {
+      display: flex; align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px; margin-bottom: 4px;
+    }
+    .player-number-name {
+      display: flex; align-items: baseline; gap: 8px;
+    }
+    .player-num {
+      font-size: 28px; font-weight: 900;
+      color: var(--accent); line-height: 1;
+    }
+    .player-name {
+      font-size: 20px; font-weight: 500;
+      line-height: 1.2;
+    }
+    .player-pos-row {
+      display: flex; align-items: center;
+      gap: 8px; margin-bottom: 14px;
+      font-size: 12px; color: var(--text-muted);
+    }
+
+    /* Grade section */
+    .grade-section {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 0;
+      margin-bottom: 12px;
+    }
+    .grade-row-item {
+      display: flex; align-items: center;
+      gap: 8px; padding: 5px 0;
+    }
+    .grade-row-label {
+      font-size: 12px; color: var(--text-muted);
+      font-weight: 600; min-width: 76px;
+    }
+    .grade-btns-wrap { display: flex; gap: 5px; }
+
+    /* Average */
+    .play-avg {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 0; font-size: 13px; color: var(--text-muted);
+    }
+    .play-avg-value {
+      font-size: 22px; font-weight: 800;
+    }
+    .play-avg-arrow { font-size: 16px; }
+    .avg-pos  { color: var(--success); }
+    .avg-neg  { color: var(--danger); }
+    .avg-zero { color: var(--text-muted); }
+
+    /* Bottom nav buttons */
+    .panel-right-footer {
+      flex-shrink: 0;
+      display: flex; gap: 8px;
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+      background: var(--bg-panel);
+    }
+    .panel-right-footer .btn {
+      flex: 1; font-size: 12px; padding: 10px 6px;
+    }
+
+    /* ── PLAYER MODAL ── */
+    .player-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.75);
+      z-index: 200;
+      display: flex; align-items: flex-end;
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+    }
+    .player-modal-overlay.hidden { display: none; }
+    .player-modal-box {
+      background: var(--bg-panel);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      width: 100%; max-height: 80dvh;
+      display: flex; flex-direction: column;
+      border-top: 1px solid rgba(255,255,255,.1);
+    }
+    .player-modal-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .player-modal-title { font-size: 15px; font-weight: 700; }
+    .player-modal-search {
+      padding: 8px 12px;
+      background: var(--bg-card);
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .player-modal-search input {
+      width: 100%;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 7px 14px;
+      font-size: 14px; color: var(--text-primary);
+    }
+    .player-modal-search input:focus { outline: none; border-color: var(--accent); }
+    .player-modal-list {
+      flex: 1; overflow-y: auto;
+      padding: 6px 0 16px;
+    }
+    .modal-unit-header {
+      font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .8px;
+      color: var(--text-muted);
+      padding: 10px 16px 4px;
+    }
+    .modal-player-row {
+      display: flex; align-items: center;
+      gap: 10px; padding: 10px 16px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .1s;
+    }
+    .modal-player-row:active { background: rgba(255,255,255,.05); }
+    .modal-player-num {
+      min-width: 32px; height: 32px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.08);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800;
+      color: var(--text-primary); flex-shrink: 0;
+    }
+    .modal-player-info { flex: 1; min-width: 0; }
+    .modal-player-name {
+      font-size: 14px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .modal-player-pos { font-size: 11px; color: var(--text-muted); }
+    .modal-player-badge {
+      font-size: 10px; font-weight: 700; letter-spacing: .3px;
+      padding: 2px 7px; border-radius: 10px;
+      background: rgba(30,136,229,.15); color: var(--accent);
+    }
+    .modal-player-badge.on-field {
+      background: rgba(251,140,0,.15); color: var(--warn);
+    }
+    .modal-player-row.dimmed .modal-player-name,
+    .modal-player-row.dimmed .modal-player-pos { opacity: .45; }
+    .modal-cancel-row {
+      padding: 10px 16px 4px;
+      border-top: 1px solid var(--border);
+      margin-top: 4px;
+    }
+
+    /* ── ADD PLAY MODAL ── */
+    .add-play-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.75);
+      z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+      backdrop-filter: blur(2px);
+    }
+    .add-play-overlay.hidden { display: none; }
+    .add-play-box {
+      background: var(--bg-panel);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      width: 100%; max-width: 380px;
+      border: 1px solid rgba(255,255,255,.1);
+    }
+
+    /* Empty game state */
+    .empty-game-state {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 100%; text-align: center;
+      padding: 2rem; color: var(--text-muted);
+    }
+    .empty-game-icon { font-size: 48px; margin-bottom: 12px; opacity: .4; }
+    .empty-game-text { font-size: 14px; line-height: 1.8; margin-bottom: 1.5rem; }
+    .empty-game-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+    /* Chip x button visible always when assigned */
+    .position-chip.assigned .chip-x { display: flex; }
+
+    /* Toast position for this page (no bottom nav) */
+    .toast { bottom: 16px; }
+
+    @media (max-width: 767px) {
+      .grade-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+      .panel-left { height: auto; }
+      .panel-right { height: 50dvh; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     MAIN LAYOUT
+══════════════════════════════════ -->
+<div class="grade-layout" id="grade-layout">
+
+  <!-- ─── LEFT PANEL ─── -->
+  <div class="panel-left" id="panel-left">
+
+    <!-- Sub-header -->
+    <div class="play-header" id="play-header">
+      <button class="play-header-back" onclick="location.href='index.html'" title="Volver">←</button>
+      <div class="play-header-info">
+        <div class="play-counter" id="play-counter">—</div>
+        <div class="play-match" id="play-match">—</div>
+      </div>
+      <div class="unit-toggle">
+        <button class="unit-btn" id="unit-ofe-btn" onclick="setUnit('OFE')">OFE</button>
+        <button class="unit-btn" id="unit-def-btn" onclick="setUnit('DEF')">DEF</button>
+      </div>
+      <div class="play-nav-btns">
+        <button class="play-nav-btn" id="btn-prev" onclick="prevPlay()" title="Jugada anterior" disabled>‹</button>
+        <button class="play-nav-btn" id="btn-next" onclick="nextPlay()" title="Siguiente jugada" disabled>›</button>
+      </div>
+    </div>
+
+    <!-- Data bar -->
+    <div class="play-data-bar" id="play-data-bar"></div>
+    <div id="formation-change-notice"
+         style="display:none; padding:4px 10px; font-size:11px; font-weight:700;
+                background:rgba(251,140,0,0.15); color:var(--warn);
+                border-bottom:1px solid var(--border); flex-shrink:0;"></div>
+
+    <!-- Field -->
+    <div class="field-container" id="field-container">
+      <!-- Chips rendered here by JS -->
+      <!-- Bottom controls -->
+      <div class="field-controls">
+        <button class="btn-move" id="btn-move" onclick="toggleMoveMode()">Mover</button>
+        <div class="field-controls-right">
+          <button class="btn-field-sm" onclick="addPosition()">+ Pos</button>
+          <button class="btn-field-sm" onclick="confirmClearLineup()">Limpiar lineup</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty game state (hidden by default) -->
+    <div class="empty-game-state hidden" id="empty-game-state">
+      <div class="empty-game-icon">🏈</div>
+      <div class="empty-game-text">
+        Este partido no tiene jugadas<br>
+        Agrega jugadas manualmente<br>
+        o regresa y carga un CSV
+      </div>
+      <div class="empty-game-btns">
+        <button class="btn btn-primary" onclick="openAddPlayModal()">+ Agregar jugada</button>
+        <button class="btn btn-ghost" onclick="location.href='index.html'">← Volver</button>
+      </div>
+    </div>
+
+  </div><!-- /panel-left -->
+
+  <!-- ─── RIGHT PANEL ─── -->
+  <div class="panel-right" id="panel-right">
+
+    <div class="right-panel-body" id="right-panel-body">
+      <!-- Rendered by renderRightPanel() -->
+    </div>
+
+    <div class="panel-right-footer" id="panel-right-footer">
+      <button class="btn btn-ghost" id="fp-prev" onclick="prevPlay()" disabled>← Jugada anterior</button>
+      <button class="btn btn-primary" id="fp-next" onclick="nextPlay()" disabled>Siguiente jugada →</button>
+    </div>
+
+  </div><!-- /panel-right -->
+
+</div>
+
+<!-- ══════════════════════════════════
+     MODAL — SELECCIÓN DE JUGADOR
+══════════════════════════════════ -->
+<div class="player-modal-overlay hidden" id="player-modal" onclick="playerModalBgClick(event)">
+  <div class="player-modal-box">
+    <div class="player-modal-header">
+      <div class="player-modal-title" id="player-modal-title">Asignar jugador</div>
+      <button class="modal-close" onclick="closePlayerModal()" style="position:static">✕</button>
+    </div>
+    <div class="player-modal-search">
+      <input type="search" id="player-search" placeholder="🔍 Buscar por nombre o número…"
+             oninput="filterPlayers(this.value)" autocomplete="off">
+    </div>
+    <div class="player-modal-list" id="player-modal-list"></div>
+    <div class="modal-cancel-row">
+      <button class="btn btn-ghost w-full" onclick="closePlayerModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     MODAL — AGREGAR JUGADA
+══════════════════════════════════ -->
+<div class="add-play-overlay hidden" id="add-play-modal" onclick="addPlayModalBgClick(event)">
+  <div class="add-play-box">
+    <div class="modal-title">Agregar jugada</div>
+    <div class="form-group">
+      <label class="form-label">Cuarto</label>
+      <select id="ap-quarter">
+        <option value="1">Q1</option><option value="2">Q2</option>
+        <option value="3">Q3</option><option value="4">Q4</option>
+      </select>
+    </div>
+    <div class="form-group mt-1" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div>
+        <label class="form-label">Down</label>
+        <select id="ap-down">
+          <option value="1">1st</option><option value="2">2nd</option>
+          <option value="3">3rd</option><option value="4">4th</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Distance</label>
+        <input type="number" id="ap-distance" placeholder="10" min="0" max="99">
+      </div>
+    </div>
+    <div class="form-group mt-1">
+      <label class="form-label">Yard Line</label>
+      <input type="text" id="ap-yardline" placeholder="Ej: -25">
+    </div>
+    <div class="form-group mt-1">
+      <label class="form-label">Formation</label>
+      <input type="text" id="ap-formation" placeholder="Ej: Shotgun Spread">
+    </div>
+    <div class="form-group mt-1">
+      <label class="form-label">Unidad</label>
+      <select id="ap-unit">
+        <option value="OFE">Ofensiva</option>
+        <option value="DEF">Defensiva</option>
+        <option value="ST">Especiales</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeAddPlayModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveNewPlay()">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     TOAST
+══════════════════════════════════ -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════════
+     SCRIPTS
+══════════════════════════════════ -->
+<script src="app.js"></script>
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════ */
+let currentGame      = null;
+let plays            = [];
+let currentPlayIndex = 0;
+let currentPositions = [];   // [{ id, label, x, y }]
+let currentLineup    = {};   // { positionId: playerId } — persiste entre jugadas en memoria
+let currentGrades    = {};   // { playerId: { asignacion, ejecucion, decision, impacto, disciplina } }
+let selectedChipId   = null;
+let isMoveMode       = false;
+let activeUnit       = 'OFE';
+let openModalPosId   = null; // positionId being assigned
+
+// Swipe
+let touchStartX = 0;
+let touchStartY = 0;
+
+/* ═══════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  // Read game id from URL or session
+  const params = new URLSearchParams(location.search);
+  const gameId = params.get('game');
+  if (gameId) setCurrentGame(gameId);
+
+  currentGame = getCurrentGame();
+  if (!currentGame) {
+    location.href = 'index.html';
+    return;
+  }
+
+  plays = getPlays(currentGame.id);
+
+  // Show match name
+  const matchLabel = currentGame.opponent
+    ? `${localStorage.getItem('pp_team_name') || 'Local'} vs ${currentGame.opponent}`
+    : currentGame.name;
+  document.getElementById('play-match').textContent = matchLabel;
+
+  if (!plays.length) {
+    showEmptyState();
+  } else {
+    const startPlay = parseInt(params.get('play') || '0', 10);
+    const idx = !isNaN(startPlay) && startPlay >= 0 && startPlay < plays.length ? startPlay : 0;
+    loadPlay(idx);
+  }
+
+  // Swipe on field
+  const field = document.getElementById('field-container');
+  field.addEventListener('touchstart', onTouchStart, { passive: true });
+  field.addEventListener('touchend',   onTouchEnd,   { passive: true });
+});
+
+// Persistir estado al cerrar/navegar fuera
+window.addEventListener('beforeunload', () => {
+  if (currentGame && currentPlayIndex !== null && plays[currentPlayIndex]) {
+    saveCurrentState();
+  }
+});
+
+/* ═══════════════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════════════ */
+function showEmptyState() {
+  document.getElementById('field-container').style.display = 'none';
+  document.getElementById('play-data-bar').style.display   = 'none';
+  document.getElementById('empty-game-state').classList.remove('hidden');
+  document.getElementById('play-counter').textContent = 'Sin jugadas';
+  renderRightPanel();
+}
+
+/* ═══════════════════════════════════════════════════
+   LOAD PLAY
+═══════════════════════════════════════════════════ */
+function loadPlay(index) {
+  // Capturar posiciones y lineup ANTES de cambiarlos para poder migrar
+  const prevPositions = deepCopyPositions(currentPositions);
+  const prevLineup    = { ...currentLineup };
+
+  currentPlayIndex = index;
+  const play = plays[index];
+
+  // Detect unit from play or keep activeUnit
+  if (play.unit) activeUnit = play.unit;
+
+  // Detectar si la formación cambió respecto a la jugada anterior
+  const prevPlay         = index > 0 ? plays[index - 1] : null;
+  const prevFormation    = prevPlay ? (prevPlay.formation || null) : null;
+  const formationChanged = prevPlay &&
+    prevPlay.formation && play.formation &&
+    prevPlay.formation.toLowerCase() !== play.formation.toLowerCase();
+
+  // Cargar posiciones del template de la nueva formación
+  const template = play.formation ? getFormationByName(play.formation) : null;
+  if (template) {
+    currentPositions = deepCopyPositions(template.positions);
+  } else if (currentPositions.length === 0) {
+    currentPositions = getDefaultPositions();
+  }
+  // else: mantener currentPositions sin template
+
+  // Grades: resetear (son por jugada)
+  currentGrades = (play.grades && Object.keys(play.grades).length > 0)
+    ? deepMergeGrades(play.grades)
+    : {};
+
+  // Lineup:
+  if (play.lineup && Object.keys(play.lineup).length > 0) {
+    // Jugada ya trabajada → cargar su lineup guardado
+    currentLineup = { ...play.lineup };
+  } else if (formationChanged && template) {
+    // Formación nueva, jugada no trabajada → migrar por label
+    currentLineup = migrateLineup(prevPositions, currentPositions, prevLineup);
+    showFormationChangeNotice(prevPlay.formation, play.formation);
+  } else if (template && prevPositions.length > 0) {
+    // Misma formación con template → migrar por label para reasignar IDs correctamente
+    currentLineup = migrateLineup(prevPositions, currentPositions, prevLineup);
+  }
+  // else: currentLineup se mantiene sin cambios (sin template)
+
+  // Update UI
+  renderPlayHeader();
+  renderPlayDataBar(play, prevFormation);
+  renderField();
+  selectedChipId = null;
+  renderRightPanel();
+  updateNavButtons();
+  updateUnitToggle();
+
+  // Save positions back to game formation
+  ppSet(`pp_formation_${currentGame.id}_${activeUnit}`, currentPositions);
+}
+
+function getDefaultPositions() {
+  const formations = getFormations();
+  const ofe = formations.find(f => f.unit === 'OFE');
+  if (ofe) return deepCopyPositions(ofe.positions);
+  return [];
+}
+
+function deepCopyPositions(positions) {
+  return positions.map(p => ({ ...p }));
+}
+
+function deepCopy(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function migrateLineup(oldPositions, newPositions, oldLineup) {
+  // Construir mapa label → playerId del lineup anterior
+  const labelToPlayer = {};
+  oldPositions.forEach(pos => {
+    if (oldLineup[pos.id]) {
+      labelToPlayer[pos.label] = oldLineup[pos.id];
+    }
+  });
+  // Mapear a los nuevos positionIds por label
+  const newLineup = {};
+  newPositions.forEach(pos => {
+    if (labelToPlayer[pos.label]) {
+      newLineup[pos.id] = labelToPlayer[pos.label];
+    }
+  });
+  return newLineup;
+}
+
+let _formationNoticeTimer;
+function showFormationChangeNotice(fromFormation, toFormation) {
+  const notice = document.getElementById('formation-change-notice');
+  if (!notice) return;
+  notice.textContent = `Formación cambió: ${fromFormation} → ${toFormation}`;
+  notice.style.display = 'block';
+  clearTimeout(_formationNoticeTimer);
+  _formationNoticeTimer = setTimeout(() => {
+    notice.style.display = 'none';
+  }, 3000);
+}
+
+function deepMergeGrades(grades) {
+  const result = {};
+  for (const [pid, g] of Object.entries(grades)) {
+    result[pid] = { ...g };
+  }
+  return result;
+}
+
+/* ═══════════════════════════════════════════════════
+   RENDER PLAY HEADER
+═══════════════════════════════════════════════════ */
+function renderPlayHeader() {
+  document.getElementById('play-counter').textContent =
+    `Jugada ${currentPlayIndex + 1} / ${plays.length}`;
+}
+
+/* ═══════════════════════════════════════════════════
+   RENDER DATA BAR
+═══════════════════════════════════════════════════ */
+function renderPlayDataBar(play, prevFormation) {
+  const bar = document.getElementById('play-data-bar');
+  if (!play) { bar.innerHTML = ''; return; }
+
+  const items = [];
+
+  // Badges first
+  if (play.noPlay && play.noPlay.toLowerCase() !== '' && play.noPlay !== '0') {
+    items.push(`<span class="badge-noplay">NO PLAY</span>`);
+  }
+  const ispenalty = play.result && play.result.toLowerCase().includes('penalty');
+  if (ispenalty) {
+    items.push(`<span class="badge-penalty">PENALTY${play.penaltyType ? ': ' + esc(play.penaltyType) : ''}</span>`);
+  }
+
+  // Data fields
+  const add = (label, value) => {
+    if (value && value !== '') items.push(`<span class="data-item"><strong>${label}</strong> ${esc(value)}</span>`);
+  };
+
+  if (play.quarter)      add('Q' + play.quarter, '');
+  if (play.down && play.toFirst) items.push(`<span class="data-item"><strong>${ordinal(play.down)} &amp; ${esc(play.toFirst)}</strong></span>`);
+  else if (play.down)    add('Down', play.down);
+  if (play.yardDisplay || play.yardLine) add('Yd:', play.yardDisplay || play.yardLine);
+  if (play.formation)    add('Formation:', play.formation);
+  if (play.play)         add('Play:', play.play);
+  if (play.result && !ispenalty) add('Result:', play.result);
+  if (play.yardsGained)  add('Yds:', play.yardsGained);
+  if (play.front)        add('Front:', play.front);
+  if (play.coverage)     add('Coverage:', play.coverage);
+  if (play.blitz && play.blitz !== '0' && play.blitz !== '') add('Blitz:', play.blitz);
+
+  bar.innerHTML = items.join('');
+
+  // Formation change badge
+  if (prevFormation && play.formation && prevFormation.toLowerCase() !== play.formation.toLowerCase()) {
+    bar.innerHTML += `<span class="badge-formation-change">Formación cambió: ${esc(prevFormation)} → ${esc(play.formation)}</span>`;
+  }
+}
+
+function ordinal(n) {
+  const s = parseInt(n);
+  if (s === 1) return '1st';
+  if (s === 2) return '2nd';
+  if (s === 3) return '3rd';
+  return s + 'th';
+}
+
+/* ═══════════════════════════════════════════════════
+   RENDER FIELD (CHIPS)
+═══════════════════════════════════════════════════ */
+function renderField() {
+  const container = document.getElementById('field-container');
+  // Remove old chips
+  container.querySelectorAll('.position-chip').forEach(el => el.remove());
+
+  for (const pos of currentPositions) {
+    const playerId = currentLineup[pos.id] || null;
+    const player   = playerId ? getRoster().find(p => p.id === playerId) : null;
+
+    const chip = document.createElement('div');
+    chip.className = 'position-chip';
+    chip.dataset.posId = pos.id;
+    chip.style.left = pos.x + '%';
+    chip.style.top  = pos.y + '%';
+
+    if (playerId && player) {
+      chip.classList.add('assigned');
+    }
+    if (pos.id === selectedChipId) {
+      chip.classList.add('selected');
+    }
+
+    // Dim chips of the other unit
+    const posUnit = getPositionUnit(pos.label);
+    if (posUnit && posUnit !== activeUnit) {
+      chip.classList.add('dimmed');
+    }
+
+    if (isMoveMode) chip.classList.add('move-mode');
+
+    // Content
+    if (player) {
+      chip.innerHTML = `
+        <span class="chip-number">#${esc(player.number)}</span>
+        <span class="chip-name">${esc(player.name.split(' ')[0])}</span>
+        <span class="chip-x" data-pos-id="${pos.id}">✕</span>`;
+    } else {
+      chip.innerHTML = `<span class="chip-label">${esc(pos.label)}</span>`;
+    }
+
+    // Events
+    if (isMoveMode) {
+      attachDragEvents(chip, pos);
+    } else {
+      chip.addEventListener('touchstart', onChipTouchStart, { passive: true });
+      chip.addEventListener('click', (e) => {
+        // Don't open modal if clicking the X
+        if (e.target.classList.contains('chip-x') || e.target.dataset.posId) return;
+        onChipTap(pos.id);
+      });
+      // X button
+      const xBtn = chip.querySelector('.chip-x');
+      if (xBtn) {
+        xBtn.addEventListener('touchstart', (e) => { e.stopPropagation(); }, { passive: true });
+        xBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          unassignPlayer(pos.id);
+        });
+      }
+    }
+
+    container.appendChild(chip);
+  }
+}
+
+// Heuristic: determine unit from position label
+function getPositionUnit(label) {
+  const ofeLabels = ['QB','RB','FB','WR','TE','OL','C','LT','RT','LG','RG','SLOT','H','F','Y','Z','X','T'];
+  const defLabels = ['DL','DE','DT','NT','LB','ILB','OLB','MLB','CB','S','FS','SS','DB','MIKE','WILL','SAM'];
+  const up = label ? label.toUpperCase() : '';
+  for (const l of ofeLabels) { if (up.startsWith(l)) return 'OFE'; }
+  for (const l of defLabels) { if (up.startsWith(l)) return 'DEF'; }
+  return null;
+}
+
+/* ── Chip tap (non-move mode) ── */
+let _chipTouchId = null;
+function onChipTouchStart(e) {
+  _chipTouchId = e.touches[0].identifier;
+}
+
+function onChipTap(posId) {
+  if (isMoveMode) return;
+  selectedChipId = posId;
+  renderField();
+  const playerId = currentLineup[posId] || null;
+  if (!playerId) {
+    // No player — open modal
+    openPlayerModal(posId);
+  } else {
+    renderRightPanel();
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   DRAG & DROP (move mode)
+═══════════════════════════════════════════════════ */
+function attachDragEvents(chip, pos) {
+  let startX, startY, origX, origY;
+  let dragging = false;
+
+  const onStart = (clientX, clientY) => {
+    startX = clientX; startY = clientY;
+    origX = pos.x; origY = pos.y;
+    dragging = true;
+    chip.style.zIndex = 30;
+  };
+
+  const onMove = (clientX, clientY) => {
+    if (!dragging) return;
+    const container = document.getElementById('field-container');
+    const rect = container.getBoundingClientRect();
+    const newX = ((clientX - rect.left) / rect.width)  * 100;
+    const newY = ((clientY - rect.top)  / rect.height) * 100;
+    const clampedX = Math.max(2, Math.min(98, newX));
+    const clampedY = Math.max(2, Math.min(98, newY));
+    chip.style.left = clampedX + '%';
+    chip.style.top  = clampedY + '%';
+    pos.x = clampedX;
+    pos.y = clampedY;
+  };
+
+  const onEnd = () => {
+    if (!dragging) return;
+    dragging = false;
+    chip.style.zIndex = '';
+    // Persist
+    ppSet(`pp_formation_${currentGame.id}_${activeUnit}`, currentPositions);
+  };
+
+  // Touch
+  chip.addEventListener('touchstart', (e) => {
+    e.stopPropagation();
+    const t = e.touches[0];
+    onStart(t.clientX, t.clientY);
+  }, { passive: true });
+
+  chip.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const t = e.touches[0];
+    onMove(t.clientX, t.clientY);
+  }, { passive: false });
+
+  chip.addEventListener('touchend', (e) => {
+    e.stopPropagation();
+    onEnd();
+  }, { passive: true });
+
+  // Mouse (desktop/pointer)
+  chip.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    onStart(e.clientX, e.clientY);
+    const onMM = (ev) => onMove(ev.clientX, ev.clientY);
+    const onMU = () => { document.removeEventListener('mousemove', onMM); document.removeEventListener('mouseup', onMU); onEnd(); };
+    document.addEventListener('mousemove', onMM);
+    document.addEventListener('mouseup',   onMU);
+  });
+}
+
+/* ═══════════════════════════════════════════════════
+   UNIT TOGGLE
+═══════════════════════════════════════════════════ */
+function setUnit(unit) {
+  activeUnit = unit;
+  updateUnitToggle();
+  renderField();
+  selectedChipId = null;
+  renderRightPanel();
+}
+
+function updateUnitToggle() {
+  const oBtn = document.getElementById('unit-ofe-btn');
+  const dBtn = document.getElementById('unit-def-btn');
+  oBtn.className = 'unit-btn' + (activeUnit === 'OFE' ? ' active-ofe' : '');
+  dBtn.className = 'unit-btn' + (activeUnit === 'DEF' ? ' active-def' : '');
+}
+
+/* ═══════════════════════════════════════════════════
+   MOVE MODE
+═══════════════════════════════════════════════════ */
+function toggleMoveMode() {
+  isMoveMode = !isMoveMode;
+  const btn = document.getElementById('btn-move');
+  btn.classList.toggle('active', isMoveMode);
+  btn.textContent = isMoveMode ? 'Listo ✓' : 'Mover';
+  renderField();
+  if (!isMoveMode) {
+    ppSet(`pp_formation_${currentGame.id}_${activeUnit}`, currentPositions);
+    showToast('Posiciones guardadas');
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   ADD / CLEAR POSITIONS
+═══════════════════════════════════════════════════ */
+function addPosition() {
+  const newPos = {
+    id:    'pos_' + generateId(),
+    label: 'POS',
+    x: 50,
+    y: 50,
+  };
+  currentPositions.push(newPos);
+  renderField();
+  ppSet(`pp_formation_${currentGame.id}_${activeUnit}`, currentPositions);
+}
+
+function confirmClearLineup() {
+  if (!confirm('¿Limpiar todos los jugadores de esta jugada?')) return;
+  currentLineup = {};
+  selectedChipId = null;
+  saveCurrentState();
+  renderField();
+  renderRightPanel();
+  showToast('Lineup limpiado');
+}
+
+/* ═══════════════════════════════════════════════════
+   RENDER RIGHT PANEL
+═══════════════════════════════════════════════════ */
+function renderRightPanel() {
+  const body = document.getElementById('right-panel-body');
+
+  if (!plays.length) {
+    body.innerHTML = `
+      <div class="rp-empty">
+        <div class="rp-empty-icon">🏈</div>
+        <div class="rp-empty-text">Sin jugadas en este partido</div>
+      </div>`;
+    return;
+  }
+
+  if (!selectedChipId) {
+    body.innerHTML = `
+      <div class="rp-empty">
+        <div class="rp-empty-icon">🏈</div>
+        <div class="rp-empty-text">Selecciona una posición<br>en el campo para ver<br>o asignar un jugador</div>
+      </div>`;
+    return;
+  }
+
+  const pos      = currentPositions.find(p => p.id === selectedChipId);
+  const playerId = currentLineup[selectedChipId] || null;
+  const player   = playerId ? getRoster().find(p => p.id === playerId) : null;
+
+  if (!player) {
+    body.innerHTML = `
+      <div style="padding-top:8px">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">Posición: <strong style="color:var(--text-primary)">${esc(pos ? pos.label : selectedChipId)}</strong></div>
+        <div style="font-size:14px;color:var(--text-muted);margin-bottom:16px">Sin jugador asignado</div>
+        <button class="btn btn-primary w-full" onclick="openPlayerModal('${selectedChipId}')">Asignar jugador</button>
+      </div>`;
+    return;
+  }
+
+  // Grades
+  const grades = currentGrades[playerId] || {};
+  const cats = [
+    { key: 'asignacion', label: 'Asignación' },
+    { key: 'ejecucion',  label: 'Ejecución'  },
+    { key: 'decision',   label: 'Decisión'   },
+    { key: 'impacto',    label: 'Impacto'    },
+    { key: 'disciplina', label: 'Disciplina' },
+  ];
+
+  const gradeRowsHtml = cats.map(cat => {
+    const val = grades[cat.key];
+    const btns = [-2, -1, 0, 1, 2].map(v => {
+      let cls = 'grade-btn';
+      if (val === v) {
+        cls += v < 0 ? ' active-neg' : v > 0 ? ' active-pos' : ' active-zero';
+      }
+      return `<button class="${cls}"
+        onclick="setGrade('${playerId}','${cat.key}',${v})"
+        ontouchend="event.preventDefault();setGrade('${playerId}','${cat.key}',${v})"
+      >${v > 0 ? '+' + v : v}</button>`;
+    }).join('');
+    return `
+      <div class="grade-row-item">
+        <div class="grade-row-label">${cat.label}</div>
+        <div class="grade-btns-wrap">${btns}</div>
+      </div>`;
+  }).join('');
+
+  // Average
+  const gradeVals = cats.map(c => grades[c.key]).filter(v => v !== undefined && v !== null);
+  let avgHtml = '';
+  if (gradeVals.length > 0) {
+    const avg = gradeVals.reduce((a, b) => a + b, 0) / gradeVals.length;
+    const sign   = avg > 0 ? '+' : '';
+    const cls    = avg > 0 ? 'avg-pos' : avg < 0 ? 'avg-neg' : 'avg-zero';
+    const arrow  = avg > 0 ? '▲' : avg < 0 ? '▼' : '—';
+    avgHtml = `
+      <div class="play-avg">
+        <span style="color:var(--text-muted);font-size:13px">Promedio esta jugada:</span>
+        <span class="play-avg-value ${cls}">${sign}${avg.toFixed(1)}</span>
+        <span class="play-avg-arrow ${cls}">${arrow}</span>
+      </div>`;
+  }
+
+  body.innerHTML = `
+    <div>
+      <div class="player-header">
+        <div class="player-number-name">
+          <span class="player-num">#${esc(player.number)}</span>
+          <span class="player-name">${esc(player.name)}</span>
+        </div>
+      </div>
+      <div class="player-pos-row">
+        <span>${esc(pos ? pos.label : '')}</span>
+        <span style="opacity:.4">·</span>
+        <span>${esc(player.position || '')}</span>
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto"
+          onclick="unassignPlayer('${selectedChipId}')">✕ Desasignar</button>
+      </div>
+      <div class="grade-section">
+        ${gradeRowsHtml}
+      </div>
+      ${avgHtml}
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════════════
+   GRADING
+═══════════════════════════════════════════════════ */
+function setGrade(playerId, category, value) {
+  if (!currentGrades[playerId]) currentGrades[playerId] = {};
+  // Toggle off if already selected
+  if (currentGrades[playerId][category] === value) {
+    delete currentGrades[playerId][category];
+  } else {
+    currentGrades[playerId][category] = value;
+  }
+  renderRightPanel();
+  saveCurrentState();
+}
+
+/* ═══════════════════════════════════════════════════
+   LINEUP — ASSIGN / UNASSIGN
+═══════════════════════════════════════════════════ */
+function assignPlayer(positionId, playerId) {
+  currentLineup[positionId] = playerId;
+  selectedChipId = positionId;
+  renderField();
+  renderRightPanel();
+  saveCurrentState();
+}
+
+function unassignPlayer(positionId) {
+  delete currentLineup[positionId];
+  selectedChipId = positionId;
+  renderField();
+  renderRightPanel();
+  saveCurrentState();
+}
+
+function getCurrentLineup() {
+  return { ...currentLineup };
+}
+
+function getCurrentGrades() {
+  return JSON.parse(JSON.stringify(currentGrades));
+}
+
+/* ═══════════════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════════════ */
+function nextPlay() {
+  if (currentPlayIndex < plays.length - 1) {
+    saveCurrentState();
+    loadPlay(currentPlayIndex + 1);
+  }
+}
+
+function prevPlay() {
+  if (currentPlayIndex > 0) {
+    saveCurrentState();
+    loadPlay(currentPlayIndex - 1);
+  }
+}
+
+function saveCurrentState() {
+  plays = getPlays(currentGame.id); // fresh copy
+  updatePlay(currentGame.id, currentPlayIndex, {
+    lineup: getCurrentLineup(),
+    grades: getCurrentGrades(),
+    unit:   activeUnit,
+  });
+  plays = getPlays(currentGame.id); // re-sync
+}
+
+function updateNavButtons() {
+  const btnPrev = document.getElementById('btn-prev');
+  const btnNext = document.getElementById('btn-next');
+  const fpPrev  = document.getElementById('fp-prev');
+  const fpNext  = document.getElementById('fp-next');
+
+  btnPrev.disabled = currentPlayIndex <= 0;
+  btnNext.disabled = currentPlayIndex >= plays.length - 1;
+  fpPrev.disabled  = currentPlayIndex <= 0;
+  fpNext.disabled  = currentPlayIndex >= plays.length - 1;
+}
+
+/* ═══════════════════════════════════════════════════
+   SWIPE
+═══════════════════════════════════════════════════ */
+function onTouchStart(e) {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}
+
+function onTouchEnd(e) {
+  if (isMoveMode) return;
+  const dx = touchStartX - e.changedTouches[0].clientX;
+  const dy = touchStartY - e.changedTouches[0].clientY;
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+    if (dx > 0) nextPlay();
+    else        prevPlay();
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   PLAYER MODAL
+═══════════════════════════════════════════════════ */
+function openPlayerModal(positionId) {
+  openModalPosId = positionId;
+  const pos = currentPositions.find(p => p.id === positionId);
+  document.getElementById('player-modal-title').textContent =
+    'Asignar a: ' + (pos ? pos.label : positionId);
+  document.getElementById('player-search').value = '';
+  document.getElementById('player-modal').classList.remove('hidden');
+  filterPlayers('');
+  setTimeout(() => document.getElementById('player-search').focus(), 80);
+}
+
+function closePlayerModal() {
+  document.getElementById('player-modal').classList.add('hidden');
+  openModalPosId = null;
+}
+
+function playerModalBgClick(e) {
+  if (e.target === document.getElementById('player-modal')) closePlayerModal();
+}
+
+function filterPlayers(query) {
+  const q       = query.toLowerCase().trim();
+  const roster  = getRoster();
+  const list    = document.getElementById('player-modal-list');
+  const units   = ['OFE', 'DEF', 'ST'];
+
+  // Figure out who is already in lineup
+  const lineupValues = Object.entries(currentLineup); // [posId, playerId]
+
+  let html = '';
+  for (const unit of units) {
+    const players = roster.filter(p => p.unit === unit && (
+      !q || p.name.toLowerCase().includes(q) || String(p.number).includes(q)
+    ));
+    if (!players.length) continue;
+
+    html += `<div class="modal-unit-header">${getUnitLabel(unit)}</div>`;
+    for (const p of players) {
+      // Check if already in lineup
+      const inPos = lineupValues.find(([pid, plId]) => plId === p.id);
+      const isThis = inPos && inPos[0] === openModalPosId;
+      const onField = !!inPos;
+
+      let badge = '';
+      if (isThis) badge = `<span class="modal-player-badge">✓ Asignado</span>`;
+      else if (onField) badge = `<span class="modal-player-badge on-field">En campo</span>`;
+
+      html += `
+        <div class="modal-player-row${onField && !isThis ? ' dimmed' : ''}"
+             onclick="selectModalPlayer('${p.id}')">
+          <div class="modal-player-num">${esc(p.number)}</div>
+          <div class="modal-player-info">
+            <div class="modal-player-name">${esc(p.name)}</div>
+            <div class="modal-player-pos">${esc(p.position || '')} · ${esc(unit)}</div>
+          </div>
+          ${badge}
+        </div>`;
+    }
+  }
+
+  if (!html) {
+    html = `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Sin resultados</div>`;
+  }
+
+  list.innerHTML = html;
+}
+
+function selectModalPlayer(playerId) {
+  if (!openModalPosId) return;
+  assignPlayer(openModalPosId, playerId);
+  closePlayerModal();
+}
+
+/* ═══════════════════════════════════════════════════
+   ADD PLAY MODAL
+═══════════════════════════════════════════════════ */
+function openAddPlayModal() {
+  document.getElementById('add-play-modal').classList.remove('hidden');
+}
+
+function closeAddPlayModal() {
+  document.getElementById('add-play-modal').classList.add('hidden');
+}
+
+function addPlayModalBgClick(e) {
+  if (e.target === document.getElementById('add-play-modal')) closeAddPlayModal();
+}
+
+function saveNewPlay() {
+  const quarter   = document.getElementById('ap-quarter').value;
+  const down      = document.getElementById('ap-down').value;
+  const distance  = document.getElementById('ap-distance').value;
+  const yardLine  = document.getElementById('ap-yardline').value.trim();
+  const formation = document.getElementById('ap-formation').value.trim();
+  const unit      = document.getElementById('ap-unit').value;
+
+  const newPlay = {
+    playNumber:   String(plays.length + 1),
+    quarter, down,
+    toFirst:      distance || '10',
+    yardLine,
+    formation,
+    unit,
+    lineup:       {},
+    grades:       {},
+    noPlay:       '',
+    result:       '',
+    yardsGained:  '',
+    front:        '',
+    coverage:     '',
+  };
+
+  plays.push(newPlay);
+  savePlays(currentGame.id, plays);
+  closeAddPlayModal();
+
+  // Show field
+  document.getElementById('field-container').style.display = '';
+  document.getElementById('play-data-bar').style.display   = '';
+  document.getElementById('empty-game-state').classList.add('hidden');
+
+  loadPlay(plays.length - 1);
+  showToast('Jugada agregada');
+}
+
+/* ═══════════════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════════════ */
+let _toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+</script>
+
+</body>
+</html>

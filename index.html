@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Player Participation</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ── PAGE-SPECIFIC STYLES ── */
+
+    /* Header */
+    .app-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-panel);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .app-header-brand { flex: 1; min-width: 0; }
+    .app-header-brand h1 {
+      font-size: 17px;
+      font-weight: 800;
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .team-name-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 2px;
+    }
+    .team-name-display {
+      font-size: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 1px dashed transparent;
+      transition: border-color .15s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+    .team-name-display:hover { border-bottom-color: var(--text-muted); }
+    .team-name-input {
+      font-size: 12px;
+      padding: 2px 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      color: var(--text-primary);
+      width: 180px;
+    }
+    .team-name-input:focus { outline: none; }
+
+    /* Games list */
+    .games-section {
+      padding: 16px;
+      max-width: 700px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .games-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .game-list { display: flex; flex-direction: column; gap: 10px; }
+
+    /* Game card */
+    .game-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: 14px 15px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: border-color .2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .game-card:hover { border-color: rgba(255,255,255,.18); }
+    .game-card.is-current { border-color: var(--accent); }
+    .game-card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .game-card-rival {
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .game-card-date {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .game-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .game-card-meta .sep { opacity: .4; }
+    .status-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .status-dot::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-dot.active::before  { background: var(--warn); }
+    .status-dot.done::before    { background: var(--success); }
+    .status-dot.active { color: var(--warn); }
+    .status-dot.done   { color: var(--success); }
+
+    .progress-bar-wrap {
+      height: 4px;
+      background: rgba(255,255,255,.08);
+      border-radius: 2px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--accent);
+      transition: width .3s;
+    }
+    .progress-bar-fill.full { background: var(--success); }
+
+    .game-card-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .game-card-plays {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .game-card-plays strong { color: var(--text-primary); }
+
+    /* Empty state */
+    .empty-ctas {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    /* Quick access */
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 0 16px 16px;
+      max-width: 700px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .quick-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: 14px 10px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      color: var(--text-primary);
+      transition: border-color .15s;
+      -webkit-tap-highlight-color: transparent;
+      text-align: center;
+    }
+    .quick-card:hover { border-color: rgba(255,255,255,.2); }
+    .quick-card-icon { font-size: 22px; line-height: 1; }
+    .quick-card-label {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--text-muted);
+    }
+    .quick-card-stat {
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Modal tabs */
+    .modal-tabs {
+      display: flex;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-bottom: 1.25rem;
+    }
+    .modal-tab-btn {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .3px;
+      border: none;
+      background: rgba(255,255,255,.04);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .modal-tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* Dropzone */
+    .dropzone {
+      border: 2px dashed rgba(255,255,255,.2);
+      border-radius: var(--radius-md);
+      padding: 28px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .dropzone:hover, .dropzone.drag-over {
+      border-color: var(--accent);
+      background: rgba(30,136,229,.06);
+      color: var(--text-primary);
+    }
+    .dropzone-icon { font-size: 26px; margin-bottom: 8px; }
+    .dropzone input[type="file"] { display: none; }
+
+    .file-selected {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 8px 10px;
+      background: rgba(67,160,71,.12);
+      border: 1px solid rgba(67,160,71,.3);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      color: var(--success);
+    }
+    .file-selected.hidden { display: none; }
+
+    /* Warning box */
+    .warning-box {
+      background: rgba(251,140,0,.1);
+      border: 1px solid rgba(251,140,0,.3);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--warn);
+      margin-top: 10px;
+      line-height: 1.6;
+    }
+    .warning-box.hidden { display: none; }
+    .warning-box strong { display: block; margin-bottom: 3px; }
+
+    /* Misc */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 16px 0;
+    }
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      padding: 0 16px;
+      margin: 16px 0 10px;
+      display: block;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* iPad landscape: center content */
+    @media (min-width: 768px) {
+      .games-section { padding: 20px 0; }
+      .quick-grid { padding: 0 0 20px; }
+      .section-label { padding: 0; }
+      .content-center {
+        max-width: 700px;
+        margin: 0 auto;
+        padding: 0 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════
+       HEADER
+  ══════════════════════════════════ -->
+  <header class="app-header">
+    <div class="app-header-brand">
+      <h1>Player Participation</h1>
+      <div class="team-name-wrap">
+        <span class="team-name-display" id="team-name-display" onclick="startEditTeamName()" title="Toca para editar">—</span>
+        <input type="text" class="team-name-input hidden" id="team-name-input"
+               placeholder="Nombre del equipo"
+               onblur="saveTeamName()" onkeydown="teamNameKey(event)">
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="openModal()">+ Nuevo</button>
+  </header>
+
+  <!-- ══════════════════════════════════
+       MAIN CONTENT
+  ══════════════════════════════════ -->
+  <main class="page-content">
+
+    <!-- Games section -->
+    <div class="games-section" id="games-section">
+      <div class="games-section-title">Partidos</div>
+      <div class="game-list" id="game-list"></div>
+    </div>
+
+    <!-- Quick access -->
+    <span class="section-label">Accesos rápidos</span>
+    <div class="quick-grid">
+      <a class="quick-card" href="roster.html">
+        <div class="quick-card-icon">👥</div>
+        <div class="quick-card-label">Roster</div>
+        <div class="quick-card-stat" id="stat-roster">—</div>
+      </a>
+      <a class="quick-card" href="formations.html">
+        <div class="quick-card-icon">🏈</div>
+        <div class="quick-card-label">Formaciones</div>
+        <div class="quick-card-stat" id="stat-formations">—</div>
+      </a>
+      <a class="quick-card" href="#" id="quick-report" onclick="goReport(event)">
+        <div class="quick-card-icon">📊</div>
+        <div class="quick-card-label">Reporte</div>
+        <div class="quick-card-stat" id="stat-report">—</div>
+      </a>
+    </div>
+
+  </main>
+
+  <!-- ══════════════════════════════════
+       NAV BAR
+  ══════════════════════════════════ -->
+  <nav class="nav-bar">
+    <button class="nav-tab active" onclick="location.href='index.html'">
+      <span class="nav-icon">📋</span>PARTIDOS
+    </button>
+    <button class="nav-tab" onclick="location.href='roster.html'">
+      <span class="nav-icon">👥</span>ROSTER
+    </button>
+    <button class="nav-tab" onclick="location.href='formations.html'">
+      <span class="nav-icon">🏈</span>FORMACIONES
+    </button>
+    <button class="nav-tab" onclick="goCampo()">
+      <span class="nav-icon">📐</span>CAMPO
+    </button>
+    <button class="nav-tab" onclick="goReport(null)">
+      <span class="nav-icon">📊</span>REPORTE
+    </button>
+  </nav>
+
+  <!-- ══════════════════════════════════
+       MODAL — NUEVO PARTIDO
+  ══════════════════════════════════ -->
+  <div class="modal-overlay hidden" id="modal-new" onclick="modalBgClick(event)">
+    <div class="modal-box" style="max-width:460px">
+
+      <button class="modal-close" onclick="closeModal()" aria-label="Cerrar">✕</button>
+      <div class="modal-title">Nuevo partido</div>
+
+      <!-- Tabs -->
+      <div class="modal-tabs">
+        <button class="modal-tab-btn active" id="tab-csv-btn"    onclick="switchTab('csv')">Cargar CSV</button>
+        <button class="modal-tab-btn"         id="tab-manual-btn" onclick="switchTab('manual')">Manual</button>
+      </div>
+
+      <!-- Shared fields -->
+      <div class="form-group">
+        <label class="form-label">Nombre del partido *</label>
+        <input type="text" id="f-name" placeholder="Ej: Semana 3 vs UACH"
+               onkeydown="if(event.key==='Enter')createGame()">
+      </div>
+      <div class="form-group mt-1">
+        <label class="form-label">Rival</label>
+        <input type="text" id="f-opponent" placeholder="Ej: UACH Dorados"
+               onkeydown="if(event.key==='Enter')createGame()">
+      </div>
+      <div class="form-group mt-1">
+        <label class="form-label">Fecha</label>
+        <input type="date" id="f-date">
+      </div>
+
+      <!-- CSV tab content -->
+      <div id="tab-csv">
+        <div class="form-group mt-1">
+          <label class="form-label">Archivo CSV de PlaySync</label>
+          <div class="dropzone" id="dropzone"
+               onclick="document.getElementById('file-input').click()"
+               ondragover="onDragOver(event)"
+               ondragleave="onDragLeave(event)"
+               ondrop="onDrop(event)">
+            <div class="dropzone-icon">📂</div>
+            <div>Arrastra tu CSV aquí</div>
+            <div style="font-size:11px;margin-top:4px;opacity:.7">o toca para seleccionar</div>
+            <input type="file" id="file-input" accept=".csv,text/csv" onchange="onFileChange(event)">
+          </div>
+          <div class="file-selected hidden" id="file-selected">
+            <span>✓</span>
+            <span id="file-name-display">archivo.csv</span>
+          </div>
+        </div>
+        <div class="warning-box hidden" id="missing-formations-box">
+          <strong>⚠️ Formaciones sin template:</strong>
+          <span id="missing-formations-list"></span>
+          <span style="opacity:.8;font-size:11px;display:block;margin-top:4px">
+            Puedes crearlas en Formaciones antes de gradear.
+          </span>
+        </div>
+      </div>
+
+      <!-- Manual tab content -->
+      <div id="tab-manual" class="hidden">
+        <div class="form-group mt-1">
+          <label class="form-label">Cuartos</label>
+          <select id="f-quarters">
+            <option value="4" selected>4</option>
+            <option value="2">2 (medio partido)</option>
+            <option value="1">1 (práctica)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" id="btn-create" onclick="createGame()">Crear partido</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       TOAST
+  ══════════════════════════════════ -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ══════════════════════════════════
+       SCRIPTS
+  ══════════════════════════════════ -->
+  <script src="app.js"></script>
+  <script>
+  'use strict';
+
+  /* ─── State ─── */
+  let csvText    = null;   // raw CSV string loaded from file
+  let activeTab  = 'csv';
+
+  /* ─── Init ─── */
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('f-date').value = todayISO();
+    loadTeamName();
+    renderGameList();
+    updateQuickStats();
+  });
+
+  /* ─────────────────────────────────────────────
+     TEAM NAME
+  ───────────────────────────────────────────── */
+  function loadTeamName() {
+    const name = localStorage.getItem('pp_team_name') || '';
+    document.getElementById('team-name-display').textContent = name || 'Toca para agregar equipo';
+  }
+
+  function startEditTeamName() {
+    const display = document.getElementById('team-name-display');
+    const input   = document.getElementById('team-name-input');
+    input.value = localStorage.getItem('pp_team_name') || '';
+    display.classList.add('hidden');
+    input.classList.remove('hidden');
+    input.focus();
+    input.select();
+  }
+
+  function saveTeamName() {
+    const input   = document.getElementById('team-name-input');
+    const display = document.getElementById('team-name-display');
+    const val     = input.value.trim();
+    if (val) localStorage.setItem('pp_team_name', val);
+    display.textContent = val || 'Toca para agregar equipo';
+    input.classList.add('hidden');
+    display.classList.remove('hidden');
+  }
+
+  function teamNameKey(e) {
+    if (e.key === 'Enter' || e.key === 'Escape') saveTeamName();
+  }
+
+  /* ─────────────────────────────────────────────
+     RENDER GAME LIST
+  ───────────────────────────────────────────── */
+  function renderGameList() {
+    const games = getGames().slice().sort((a, b) => {
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return b.date.localeCompare(a.date);
+    });
+
+    const currentGame = getCurrentGame();
+    const currentId   = currentGame?.id ?? null;
+
+    const container = document.getElementById('game-list');
+
+    if (!games.length) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <div><strong>Sin partidos registrados</strong></div>
+          <div style="margin-top:6px;font-size:13px">
+            Carga un CSV de PlaySync o crea<br>un partido manualmente
+          </div>
+          <div class="empty-ctas">
+            <button class="btn btn-primary" onclick="openModal('csv')">Cargar CSV</button>
+            <button class="btn btn-ghost"   onclick="openModal('manual')">Crear manual</button>
+          </div>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = games.map(g => {
+      const plays       = getPlays(g.id);
+      const total       = plays.length;
+      const withLineup  = plays.filter(p => p.lineup && Object.keys(p.lineup).length > 0).length;
+      const pct         = total > 0 ? Math.round((withLineup / total) * 100) : 0;
+      const isDone      = total > 0 && withLineup >= total;
+      const isCurrent   = g.id === currentId;
+      const rival       = g.opponent ? `vs ${g.opponent}` : g.name;
+      const dateFmt     = g.date ? formatDate(g.date) : '—';
+
+      return `
+        <div class="game-card${isCurrent ? ' is-current' : ''}" onclick="openGame('${g.id}')">
+          <div class="game-card-top">
+            <div>
+              <div class="game-card-rival">${esc(rival)}</div>
+              ${g.name !== rival ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${esc(g.name)}</div>` : ''}
+            </div>
+            <div class="game-card-date">${esc(dateFmt)}</div>
+          </div>
+          <div class="game-card-meta">
+            <span class="status-dot ${isDone ? 'done' : 'active'}">
+              ${isDone ? 'Completo' : 'En progreso'}
+            </span>
+            ${total > 0 ? `<span class="sep">·</span><span>${total} jugada${total !== 1 ? 's' : ''}</span>` : ''}
+          </div>
+          ${total > 0 ? `
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill${isDone ? ' full' : ''}" style="width:${pct}%"></div>
+          </div>` : ''}
+          <div class="game-card-actions">
+            <span class="game-card-plays">
+              ${total > 0
+                ? `<strong>${withLineup}</strong> / ${total} con lineup`
+                : '<span style="opacity:.5">Sin jugadas</span>'}
+            </span>
+            <div style="display:flex;gap:8px" onclick="event.stopPropagation()">
+              <button class="btn btn-ghost btn-sm" onclick="confirmDelete('${g.id}',event)">🗑</button>
+              <button class="btn btn-primary btn-sm" onclick="openGame('${g.id}')">Abrir →</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  /* ─────────────────────────────────────────────
+     QUICK STATS
+  ───────────────────────────────────────────── */
+  function updateQuickStats() {
+    const rosterCount     = getRoster().length;
+    const formationCount  = getFormations().length;
+    document.getElementById('stat-roster').textContent =
+      rosterCount === 1 ? '1 jugador' : `${rosterCount} jugadores`;
+    document.getElementById('stat-formations').textContent =
+      formationCount === 1 ? '1 template' : `${formationCount} templates`;
+
+    // Report stat: last game play count
+    const games = getGames();
+    if (games.length) {
+      const last = games[0];
+      document.getElementById('stat-report').textContent = last.opponent
+        ? `vs ${last.opponent}` : last.name;
+      document.getElementById('quick-report').href = `report.html?game=${last.id}`;
+    } else {
+      document.getElementById('stat-report').textContent = '—';
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     NAVIGATION
+  ───────────────────────────────────────────── */
+  function openGame(id) {
+    setCurrentGame(id);
+    location.href = `grade.html?game=${id}`;
+  }
+
+  function goCampo() {
+    const game = getCurrentGame();
+    if (game) {
+      location.href = `grade.html?game=${game.id}`;
+    } else {
+      const games = getGames();
+      if (games.length) {
+        openGame(games[0].id);
+      } else {
+        showToast('Crea un partido primero');
+      }
+    }
+  }
+
+  function goReport(e) {
+    if (e) e.preventDefault();
+    const games = getGames();
+    if (!games.length) { showToast('Sin partidos para reportar'); return; }
+    const last  = getGames().slice().sort((a,b) => (b.date||'').localeCompare(a.date||''))[0];
+    location.href = `report.html?game=${last.id}`;
+  }
+
+  /* ─────────────────────────────────────────────
+     MODAL
+  ───────────────────────────────────────────── */
+  function openModal(tab) {
+    resetModal();
+    if (tab) switchTab(tab);
+    document.getElementById('modal-new').classList.remove('hidden');
+    setTimeout(() => document.getElementById('f-name').focus(), 80);
+  }
+
+  function closeModal() {
+    document.getElementById('modal-new').classList.add('hidden');
+    resetModal();
+  }
+
+  function modalBgClick(e) {
+    if (e.target === document.getElementById('modal-new')) closeModal();
+  }
+
+  function resetModal() {
+    csvText = null;
+    document.getElementById('f-name').value     = '';
+    document.getElementById('f-opponent').value = '';
+    document.getElementById('f-date').value     = todayISO();
+    document.getElementById('f-quarters').value = '4';
+    document.getElementById('file-selected').classList.add('hidden');
+    document.getElementById('file-name-display').textContent = '';
+    document.getElementById('missing-formations-box').classList.add('hidden');
+    document.getElementById('missing-formations-list').textContent = '';
+    switchTab('csv');
+  }
+
+  function switchTab(tab) {
+    activeTab = tab;
+    document.getElementById('tab-csv').classList.toggle('hidden', tab !== 'csv');
+    document.getElementById('tab-manual').classList.toggle('hidden', tab !== 'manual');
+    document.getElementById('tab-csv-btn').classList.toggle('active', tab === 'csv');
+    document.getElementById('tab-manual-btn').classList.toggle('active', tab === 'manual');
+  }
+
+  /* ─────────────────────────────────────────────
+     FILE / DRAG & DROP
+  ───────────────────────────────────────────── */
+  function onDragOver(e) {
+    e.preventDefault();
+    document.getElementById('dropzone').classList.add('drag-over');
+  }
+  function onDragLeave(e) {
+    document.getElementById('dropzone').classList.remove('drag-over');
+  }
+  function onDrop(e) {
+    e.preventDefault();
+    document.getElementById('dropzone').classList.remove('drag-over');
+    const file = e.dataTransfer?.files?.[0];
+    if (file) readCSVFile(file);
+  }
+  function onFileChange(e) {
+    const file = e.target.files?.[0];
+    if (file) readCSVFile(file);
+    e.target.value = '';   // reset so same file can be re-selected
+  }
+
+  function readCSVFile(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      let text = e.target.result;
+      // Strip BOM if present
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+      csvText = text;
+      document.getElementById('file-name-display').textContent = file.name;
+      document.getElementById('file-selected').classList.remove('hidden');
+      // Pre-fill name if empty
+      if (!document.getElementById('f-name').value.trim()) {
+        const base = file.name.replace(/\.csv$/i, '').replace(/_/g, ' ');
+        document.getElementById('f-name').value = base;
+      }
+      checkMissingFormationsPreview(csvText);
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  function checkMissingFormationsPreview(text) {
+    try {
+      const plays   = parsePlaySyncCSV(text);
+      const missing = checkMissingFormations(plays);
+      const box     = document.getElementById('missing-formations-box');
+      const list    = document.getElementById('missing-formations-list');
+      if (missing.length) {
+        list.textContent = missing.map(f => `"${f}"`).join(', ');
+        box.classList.remove('hidden');
+      } else {
+        box.classList.add('hidden');
+      }
+    } catch { /* ignore parse errors during preview */ }
+  }
+
+  /* ─────────────────────────────────────────────
+     CREATE GAME
+  ───────────────────────────────────────────── */
+  function createGame() {
+    const name     = document.getElementById('f-name').value.trim();
+    const opponent = document.getElementById('f-opponent').value.trim();
+    const date     = document.getElementById('f-date').value;
+
+    if (!name) {
+      showToast('Ingresa el nombre del partido');
+      document.getElementById('f-name').focus();
+      return;
+    }
+
+    let gameId;
+
+    if (activeTab === 'csv') {
+      if (!csvText) {
+        showToast('Selecciona un archivo CSV primero');
+        return;
+      }
+      try {
+        gameId = createGameFromCSV(csvText, { name, opponent, date });
+      } catch (err) {
+        showToast('Error al leer el CSV — revisa el formato');
+        console.error(err);
+        return;
+      }
+    } else {
+      // Manual
+      gameId = generateId();
+      saveGame({ id: gameId, name, date, opponent, status: 'active' });
+      // No plays to save
+    }
+
+    closeModal();
+    renderGameList();
+    updateQuickStats();
+    showToast('Partido creado ✓');
+
+    // Navigate automatically
+    setTimeout(() => openGame(gameId), 400);
+  }
+
+  /* ─────────────────────────────────────────────
+     DELETE GAME
+  ───────────────────────────────────────────── */
+  function confirmDelete(id, e) {
+    if (e) e.stopPropagation();
+    const game = getGame(id);
+    const name = game ? (game.opponent ? `vs ${game.opponent}` : game.name) : 'este partido';
+    if (!confirm(`¿Eliminar "${name}"?\nSe borrarán todas sus jugadas y asignaciones.`)) return;
+    deleteGame(id);
+    renderGameList();
+    updateQuickStats();
+    showToast('Partido eliminado');
+  }
+
+  /* ─────────────────────────────────────────────
+     CHECK MISSING FORMATIONS
+  ───────────────────────────────────────────── */
+  function checkMissingFormations(plays) {
+    const csvForms   = [...new Set(plays.map(p => p.formation).filter(Boolean))];
+    const savedForms = getFormations().map(f => f.name.toLowerCase().trim());
+    return csvForms.filter(f => !savedForms.includes(f.toLowerCase().trim()));
+  }
+
+  /* ─────────────────────────────────────────────
+     TOAST
+  ───────────────────────────────────────────── */
+  let _tt;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(_tt);
+    _tt = setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  /* ─────────────────────────────────────────────
+     HELPERS
+  ───────────────────────────────────────────── */
+  function todayISO() {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  </script>
+
+</body>
+</html>

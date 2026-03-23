@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Roster — Player Participation</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ── PAGE-SPECIFIC STYLES ── */
+
+    /* Header */
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px 8px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-panel);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .header-back {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 20px;
+      line-height: 1;
+      padding: 4px 8px 4px 0;
+      cursor: pointer;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .header-title-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .header-title {
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+    .header-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .header-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    /* Filter bar */
+    .filter-bar {
+      padding: 12px 16px 0;
+    }
+    .search-wrap {
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      pointer-events: none;
+      color: var(--text-muted);
+    }
+    .search-wrap input {
+      padding-left: 32px;
+    }
+
+    /* Unit tabs */
+    .unit-tabs {
+      display: flex;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      width: fit-content;
+      margin-bottom: 12px;
+    }
+    .unit-tab {
+      padding: 6px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      border: none;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .unit-tab + .unit-tab {
+      border-left: 1px solid var(--border);
+    }
+    .unit-tab.active     { background: var(--accent);  color: #fff; }
+    .unit-tab.active-def { background: var(--danger);  color: #fff; }
+    .unit-tab.active-st  { background: var(--success); color: #fff; }
+
+    /* Roster wrap */
+    .roster-wrap {
+      padding: 0 16px 16px;
+    }
+
+    /* Table column widths */
+    .col-num     { width: 44px; font-weight: 800; }
+    .col-pos     { width: 72px; color: var(--text-muted); font-size: 12px; }
+    .col-unit    { width: 72px; }
+    .col-actions { width: 76px; text-align: right; white-space: nowrap; }
+
+    /* Sortable header */
+    .th-sort {
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .th-sort:hover { color: var(--text-primary); }
+    .sort-arrow { margin-left: 3px; opacity: 0.55; }
+
+    /* No results */
+    .no-results {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 2.5rem 1rem;
+      font-size: 13px;
+    }
+
+    /* Import panel */
+    .import-section {
+      padding: 0 16px 80px;
+    }
+    .import-toggle-btn {
+      width: 100%;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+    .import-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+    }
+    .import-box.hidden { display: none; }
+    .import-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    .import-format {
+      background: var(--bg-panel);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 12px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+      line-height: 1.8;
+    }
+    .import-divider {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin: 12px 0;
+      position: relative;
+    }
+    .import-divider::before,
+    .import-divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 38%;
+      height: 1px;
+      background: var(--border);
+    }
+    .import-divider::before { left: 0; }
+    .import-divider::after  { right: 0; }
+    .import-preview {
+      background: rgba(30, 136, 229, 0.1);
+      border: 1px solid rgba(30, 136, 229, 0.3);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--accent);
+      margin-top: 10px;
+    }
+    .import-preview.hidden { display: none; }
+    .import-mode-wrap {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .import-mode-wrap.hidden { display: none; }
+    .import-mode-btn {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .import-mode-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    /* File input */
+    input[type="file"].file-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--text-primary);
+      cursor: pointer;
+      width: 100%;
+    }
+    input[type="file"].file-btn::-webkit-file-upload-button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
+    /* Modal unit toggle */
+    .unit-toggle {
+      display: flex;
+      gap: 8px;
+    }
+    .unit-toggle-btn {
+      flex: 1;
+      padding: 9px 6px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .unit-toggle-btn[data-unit="OFE"].active {
+      background: #1a3a5c;
+      border-color: #64b5f6;
+      color: #64b5f6;
+    }
+    .unit-toggle-btn[data-unit="DEF"].active {
+      background: #3a1a1a;
+      border-color: #ef9a9a;
+      color: #ef9a9a;
+    }
+    .unit-toggle-btn[data-unit="ST"].active {
+      background: #1a3a1a;
+      border-color: #a5d6a7;
+      color: #a5d6a7;
+    }
+
+    /* Duplicate warning */
+    .duplicate-warn {
+      background: rgba(251, 140, 0, 0.1);
+      border: 1px solid rgba(251, 140, 0, 0.3);
+      border-radius: var(--radius-sm);
+      padding: 7px 10px;
+      font-size: 12px;
+      color: var(--warn);
+      margin-top: 6px;
+    }
+    .duplicate-warn.hidden { display: none; }
+
+    /* iPad / tablet */
+    @media (min-width: 768px) {
+      .filter-bar,
+      .roster-wrap,
+      .import-section {
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 24px;
+        padding-right: 24px;
+      }
+      .filter-bar   { padding-top: 16px; }
+      .import-section { padding-bottom: 80px; }
+      .col-pos { width: 90px; }
+      .col-unit { width: 90px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════
+       HEADER
+  ══════════════════════════════════ -->
+  <header class="page-header">
+    <button class="header-back" onclick="location.href='index.html'" aria-label="Volver">←</button>
+    <div class="header-title-wrap">
+      <div class="header-title">Roster</div>
+      <div class="header-subtitle" id="counter">0 jugadores</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-ghost btn-sm" onclick="exportCSV()" title="Exportar CSV">⬇ CSV</button>
+      <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ Agregar</button>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════
+       MAIN
+  ══════════════════════════════════ -->
+  <main class="page-content">
+
+    <!-- ── Filters ── -->
+    <div class="filter-bar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="search" id="search-input" placeholder="Buscar por nombre o #"
+               oninput="onSearch(this.value)">
+      </div>
+      <div class="unit-tabs">
+        <button class="unit-tab active" data-unit="all" onclick="setUnitFilter('all')">Todos</button>
+        <button class="unit-tab"        data-unit="OFE" onclick="setUnitFilter('OFE')">OFE</button>
+        <button class="unit-tab"        data-unit="DEF" onclick="setUnitFilter('DEF')">DEF</button>
+        <button class="unit-tab"        data-unit="ST"  onclick="setUnitFilter('ST')">ST</button>
+      </div>
+    </div>
+
+    <!-- ── Table ── -->
+    <div class="roster-wrap">
+      <div id="roster-content"></div>
+    </div>
+
+    <!-- ── Import section ── -->
+    <div class="import-section">
+      <button class="btn btn-ghost import-toggle-btn" id="import-toggle-btn"
+              onclick="toggleImportPanel()">⬆ Importar CSV</button>
+
+      <div class="import-box hidden" id="import-box">
+        <div class="import-title">Importar roster desde CSV</div>
+
+        <div class="import-format">
+          <span style="color:var(--text-primary);font-weight:700"># Formato esperado:</span><br>
+          #, Nombre, Posición, Unidad<br>
+          7, Carlos Ramos, QB, OFE<br>
+          55, Luis Torres, C, OFE
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Seleccionar archivo CSV</label>
+          <input type="file" class="file-btn" id="csv-file-input" accept=".csv,text/csv"
+                 onchange="onCSVFileChange(event)">
+        </div>
+
+        <div class="import-divider">— o pega el texto aquí —</div>
+
+        <div class="form-group">
+          <textarea id="csv-paste" rows="5"
+                    placeholder="#,Nombre,Posición,Unidad&#10;7,Carlos Ramos,QB,OFE&#10;55,Luis Torres,C,OFE"
+                    oninput="onCSVPaste(this.value)"></textarea>
+        </div>
+
+        <div class="import-preview hidden" id="import-preview"></div>
+
+        <div class="import-mode-wrap hidden" id="import-mode-wrap">
+          <button class="import-mode-btn active" id="mode-add"
+                  onclick="setImportMode('add')">➕ Agregar al roster</button>
+          <button class="import-mode-btn" id="mode-replace"
+                  onclick="setImportMode('replace')">🔄 Reemplazar roster</button>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-ghost btn-sm" onclick="closeImportPanel()">Cancelar</button>
+          <button class="btn btn-primary btn-sm" id="btn-import" onclick="doImport()" disabled>
+            Importar
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ══════════════════════════════════
+       NAV BAR
+  ══════════════════════════════════ -->
+  <nav class="nav-bar">
+    <button class="nav-tab" onclick="location.href='index.html'">
+      <span class="nav-icon">📋</span>PARTIDOS
+    </button>
+    <button class="nav-tab active" onclick="location.href='roster.html'">
+      <span class="nav-icon">👥</span>ROSTER
+    </button>
+    <button class="nav-tab" onclick="location.href='formations.html'">
+      <span class="nav-icon">🏈</span>FORMACIONES
+    </button>
+    <button class="nav-tab" onclick="goCampo()">
+      <span class="nav-icon">📐</span>CAMPO
+    </button>
+    <button class="nav-tab" onclick="goReport()">
+      <span class="nav-icon">📊</span>REPORTE
+    </button>
+  </nav>
+
+  <!-- ══════════════════════════════════
+       MODAL — AGREGAR / EDITAR JUGADOR
+  ══════════════════════════════════ -->
+  <div class="modal-overlay hidden" id="modal-player" onclick="modalBgClick(event)">
+    <div class="modal-box">
+
+      <button class="modal-close" onclick="closePlayerModal()" aria-label="Cerrar">✕</button>
+      <div class="modal-title" id="modal-player-title">Agregar jugador</div>
+
+      <!-- Jersey number -->
+      <div class="form-group">
+        <label class="form-label" for="f-number">Número de jersey *</label>
+        <input type="number" id="f-number" min="1" max="99" placeholder="Ej: 7"
+               oninput="checkDuplicate()"
+               onkeydown="if(event.key==='Enter')savePlayerForm()">
+        <div class="duplicate-warn hidden" id="duplicate-warn">
+          ⚠️ Ya existe un jugador con este número
+        </div>
+      </div>
+
+      <!-- Full name -->
+      <div class="form-group">
+        <label class="form-label" for="f-name">Nombre completo *</label>
+        <input type="text" id="f-name" placeholder="Ej: Carlos Ramos"
+               onkeydown="if(event.key==='Enter')savePlayerForm()">
+      </div>
+
+      <!-- Position -->
+      <div class="form-group">
+        <label class="form-label" for="f-position">Posición *</label>
+        <select id="f-position" onchange="onPositionChange()">
+          <option value="">— Seleccionar —</option>
+          <optgroup label="── Ofensiva ──">
+            <option>QB</option>
+            <option>OL-LT</option>
+            <option>OL-LG</option>
+            <option>C</option>
+            <option>OL-RG</option>
+            <option>OL-RT</option>
+            <option>WR</option>
+            <option>SLOT</option>
+            <option>TE</option>
+            <option>RB</option>
+            <option>FB</option>
+            <option>H-Back</option>
+          </optgroup>
+          <optgroup label="── Defensiva ──">
+            <option>DE</option>
+            <option>DT</option>
+            <option>NT</option>
+            <option>MLB</option>
+            <option>WILL</option>
+            <option>SAM</option>
+            <option>CB</option>
+            <option>FS</option>
+            <option>SS</option>
+            <option>NB</option>
+          </optgroup>
+          <optgroup label="── Equipos Especiales ──">
+            <option>K</option>
+            <option>P</option>
+            <option>LS</option>
+            <option>KR</option>
+            <option>PR</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <!-- Unit toggle -->
+      <div class="form-group">
+        <label class="form-label">Unidad *</label>
+        <div class="unit-toggle">
+          <button class="unit-toggle-btn" data-unit="OFE" onclick="selectModalUnit('OFE')">OFE</button>
+          <button class="unit-toggle-btn" data-unit="DEF" onclick="selectModalUnit('DEF')">DEF</button>
+          <button class="unit-toggle-btn" data-unit="ST"  onclick="selectModalUnit('ST')">ST</button>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-ghost"   onclick="closePlayerModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="savePlayerForm()">Guardar</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       TOAST
+  ══════════════════════════════════ -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ══════════════════════════════════
+       SCRIPTS
+  ══════════════════════════════════ -->
+  <script src="app.js"></script>
+  <script>
+  'use strict';
+
+  /* ─── State ─── */
+  let allPlayers      = [];
+  let filteredPlayers = [];
+  let activeUnit      = 'all';
+  let searchQuery     = '';
+  let editingPlayerId = null;
+  let selectedUnit    = null;
+  let sortAsc         = true;
+  let importPlayers   = [];
+  let importMode      = 'add';
+
+  /* ─── Position → unit map ─── */
+  const POS_UNIT_MAP = {
+    'QB': 'OFE', 'OL-LT': 'OFE', 'OL-LG': 'OFE', 'C': 'OFE',
+    'OL-RG': 'OFE', 'OL-RT': 'OFE', 'WR': 'OFE', 'SLOT': 'OFE',
+    'TE': 'OFE', 'RB': 'OFE', 'FB': 'OFE', 'H-Back': 'OFE',
+    'DE': 'DEF', 'DT': 'DEF', 'NT': 'DEF', 'MLB': 'DEF',
+    'WILL': 'DEF', 'SAM': 'DEF', 'CB': 'DEF', 'FS': 'DEF', 'SS': 'DEF', 'NB': 'DEF',
+    'K': 'ST', 'P': 'ST', 'LS': 'ST', 'KR': 'ST', 'PR': 'ST',
+  };
+
+  /* ─────────────────────────────────────────────
+     INIT
+  ───────────────────────────────────────────── */
+  document.addEventListener('DOMContentLoaded', () => {
+    allPlayers = getRoster();
+    applyFilters();
+    updateCounter();
+  });
+
+  /* ─────────────────────────────────────────────
+     FILTERING
+  ───────────────────────────────────────────── */
+  function setUnitFilter(unit) {
+    activeUnit = unit;
+    document.querySelectorAll('.unit-tab').forEach(btn => {
+      const u = btn.dataset.unit;
+      btn.classList.remove('active', 'active-def', 'active-st');
+      if (u === unit) {
+        if (u === 'DEF')      btn.classList.add('active-def');
+        else if (u === 'ST')  btn.classList.add('active-st');
+        else                  btn.classList.add('active');
+      }
+    });
+    applyFilters();
+  }
+
+  function onSearch(val) {
+    searchQuery = val;
+    applyFilters();
+  }
+
+  function applyFilters() {
+    filteredPlayers = allPlayers
+      .filter(p => activeUnit === 'all' || p.unit === activeUnit)
+      .filter(p => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return true;
+        return p.name.toLowerCase().includes(q) || String(p.number).includes(q);
+      })
+      .slice()
+      .sort((a, b) => {
+        const na = Number(a.number) || 0;
+        const nb = Number(b.number) || 0;
+        return sortAsc ? na - nb : nb - na;
+      });
+    renderTable();
+  }
+
+  /* ─────────────────────────────────────────────
+     RENDER
+  ───────────────────────────────────────────── */
+  function renderTable() {
+    const container = document.getElementById('roster-content');
+
+    /* Empty roster state */
+    if (!allPlayers.length) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">👥</div>
+          <div><strong>Sin jugadores registrados</strong></div>
+          <div style="margin-top:6px;font-size:13px">
+            Agrega jugadores uno por uno<br>o importa desde CSV
+          </div>
+          <div style="display:flex;gap:10px;justify-content:center;margin-top:1.25rem;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ Agregar</button>
+            <button class="btn btn-ghost btn-sm"   onclick="openImportFromEmpty()">Importar CSV</button>
+          </div>
+        </div>`;
+      return;
+    }
+
+    /* No search/filter results */
+    if (!filteredPlayers.length) {
+      container.innerHTML = `<div class="no-results">Sin jugadores que coincidan</div>`;
+      return;
+    }
+
+    /* Build table rows */
+    const rows = filteredPlayers.map(p => {
+      const badgeCls = p.unit === 'OFE' ? 'badge-ofe'
+                     : p.unit === 'DEF' ? 'badge-def'
+                     : 'badge-st';
+      return `
+        <tr>
+          <td class="col-num">${esc(String(p.number))}</td>
+          <td>${esc(p.name)}</td>
+          <td class="col-pos">${esc(p.position || '—')}</td>
+          <td class="col-unit"><span class="badge ${badgeCls}">${esc(p.unit)}</span></td>
+          <td class="col-actions">
+            <button class="btn btn-ghost btn-sm btn-icon"
+                    onclick="openEditModal('${p.id}')" title="Editar"
+                    style="width:30px;height:30px;font-size:13px">✏</button>
+            <button class="btn btn-ghost btn-sm btn-icon"
+                    onclick="confirmDelete('${p.id}')" title="Eliminar"
+                    style="width:30px;height:30px;font-size:13px;margin-left:4px">🗑</button>
+          </td>
+        </tr>`;
+    }).join('');
+
+    const arrow = `<span class="sort-arrow">${sortAsc ? '▲' : '▼'}</span>`;
+
+    container.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-num th-sort" onclick="toggleSort()">#${arrow}</th>
+              <th>Nombre</th>
+              <th class="col-pos">Posición</th>
+              <th class="col-unit">Unidad</th>
+              <th class="col-actions"></th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  function toggleSort() {
+    sortAsc = !sortAsc;
+    applyFilters();
+  }
+
+  function updateCounter() {
+    const n = allPlayers.length;
+    document.getElementById('counter').textContent =
+      n === 1 ? '1 jugador' : `${n} jugadores`;
+  }
+
+  /* ─────────────────────────────────────────────
+     MODAL — OPEN / CLOSE
+  ───────────────────────────────────────────── */
+  function openAddModal() {
+    editingPlayerId = null;
+    document.getElementById('modal-player-title').textContent = 'Agregar jugador';
+    document.getElementById('f-number').value   = '';
+    document.getElementById('f-name').value     = '';
+    document.getElementById('f-position').value = '';
+    document.getElementById('duplicate-warn').classList.add('hidden');
+    setModalUnit(null);
+    document.getElementById('modal-player').classList.remove('hidden');
+    setTimeout(() => document.getElementById('f-number').focus(), 80);
+  }
+
+  function openEditModal(id) {
+    const player = allPlayers.find(p => p.id === id);
+    if (!player) return;
+    editingPlayerId = id;
+    document.getElementById('modal-player-title').textContent = 'Editar jugador';
+    document.getElementById('f-number').value   = player.number;
+    document.getElementById('f-name').value     = player.name;
+    document.getElementById('f-position').value = player.position || '';
+    document.getElementById('duplicate-warn').classList.add('hidden');
+    setModalUnit(player.unit);
+    document.getElementById('modal-player').classList.remove('hidden');
+    setTimeout(() => document.getElementById('f-name').focus(), 80);
+  }
+
+  function closePlayerModal() {
+    document.getElementById('modal-player').classList.add('hidden');
+    editingPlayerId = null;
+    selectedUnit    = null;
+  }
+
+  function modalBgClick(e) {
+    if (e.target === document.getElementById('modal-player')) closePlayerModal();
+  }
+
+  /* ─────────────────────────────────────────────
+     MODAL — UNIT SELECTION
+  ───────────────────────────────────────────── */
+  function selectModalUnit(unit) {
+    setModalUnit(unit);
+  }
+
+  function setModalUnit(unit) {
+    selectedUnit = unit;
+    document.querySelectorAll('.unit-toggle-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.unit === unit);
+    });
+  }
+
+  function onPositionChange() {
+    const pos = document.getElementById('f-position').value;
+    if (pos && POS_UNIT_MAP[pos]) {
+      setModalUnit(POS_UNIT_MAP[pos]);
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     MODAL — DUPLICATE CHECK
+  ───────────────────────────────────────────── */
+  function checkDuplicate() {
+    const num  = document.getElementById('f-number').value.trim();
+    const warn = document.getElementById('duplicate-warn');
+    if (!num) { warn.classList.add('hidden'); return; }
+    const exists = allPlayers.some(
+      p => String(p.number) === num && p.id !== editingPlayerId
+    );
+    warn.classList.toggle('hidden', !exists);
+  }
+
+  /* ─────────────────────────────────────────────
+     CRUD
+  ───────────────────────────────────────────── */
+  function savePlayerForm() {
+    const numRaw = document.getElementById('f-number').value.trim();
+    const name   = document.getElementById('f-name').value.trim();
+    const pos    = document.getElementById('f-position').value;
+
+    if (!numRaw) {
+      showToast('Ingresa el número de jersey');
+      document.getElementById('f-number').focus();
+      return;
+    }
+    const num = Number(numRaw);
+    if (!Number.isInteger(num) || num < 1 || num > 99) {
+      showToast('El número debe ser entre 1 y 99');
+      document.getElementById('f-number').focus();
+      return;
+    }
+    if (!name || name.length < 2) {
+      showToast('El nombre debe tener al menos 2 caracteres');
+      document.getElementById('f-name').focus();
+      return;
+    }
+    if (!pos) {
+      showToast('Selecciona una posición');
+      document.getElementById('f-position').focus();
+      return;
+    }
+    if (!selectedUnit) {
+      showToast('Selecciona una unidad');
+      return;
+    }
+
+    savePlayer({
+      id:       editingPlayerId || generateId(),
+      number:   num,
+      name,
+      position: pos,
+      unit:     selectedUnit,
+    });
+
+    allPlayers = getRoster();
+    applyFilters();
+    updateCounter();
+    closePlayerModal();
+    showToast(editingPlayerId ? 'Jugador actualizado ✓' : 'Jugador agregado ✓');
+  }
+
+  function confirmDelete(id) {
+    const player = allPlayers.find(p => p.id === id);
+    if (!player) return;
+    if (!confirm(`¿Eliminar a ${player.name} (#${player.number})?`)) return;
+    deletePlayer(id);
+    allPlayers = getRoster();
+    applyFilters();
+    updateCounter();
+    showToast('Jugador eliminado');
+  }
+
+  /* ─────────────────────────────────────────────
+     EXPORT CSV
+  ───────────────────────────────────────────── */
+  function exportCSV() {
+    if (!allPlayers.length) { showToast('Sin jugadores para exportar'); return; }
+    const sorted = allPlayers.slice().sort((a, b) => Number(a.number) - Number(b.number));
+    const rows   = sorted.map(p =>
+      `${p.number},${csvEsc(p.name)},${csvEsc(p.position || '')},${p.unit}`
+    );
+    const content = '#,Nombre,Posición,Unidad\n' + rows.join('\n');
+    const blob    = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url     = URL.createObjectURL(blob);
+    const a       = document.createElement('a');
+    a.href        = url;
+    a.download    = 'roster_PP.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('CSV descargado ✓');
+  }
+
+  function csvEsc(s) {
+    const str = String(s);
+    return (str.includes(',') || str.includes('"') || str.includes('\n'))
+      ? `"${str.replace(/"/g, '""')}"` : str;
+  }
+
+  /* ─────────────────────────────────────────────
+     IMPORT PANEL
+  ───────────────────────────────────────────── */
+  function toggleImportPanel() {
+    const box = document.getElementById('import-box');
+    if (box.classList.contains('hidden')) {
+      box.classList.remove('hidden');
+      document.getElementById('import-toggle-btn').textContent = '✕ Cerrar importación';
+    } else {
+      closeImportPanel();
+    }
+  }
+
+  function closeImportPanel() {
+    document.getElementById('import-box').classList.add('hidden');
+    document.getElementById('import-toggle-btn').textContent = '⬆ Importar CSV';
+    document.getElementById('csv-paste').value      = '';
+    document.getElementById('csv-file-input').value = '';
+    document.getElementById('import-preview').classList.add('hidden');
+    document.getElementById('import-mode-wrap').classList.add('hidden');
+    document.getElementById('btn-import').disabled = true;
+    importPlayers = [];
+  }
+
+  function openImportFromEmpty() {
+    const box = document.getElementById('import-box');
+    box.classList.remove('hidden');
+    document.getElementById('import-toggle-btn').textContent = '✕ Cerrar importación';
+    box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function onCSVFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      let text = ev.target.result;
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1); // strip BOM
+      document.getElementById('csv-paste').value = text;
+      processImportText(text);
+    };
+    reader.readAsText(file, 'UTF-8');
+    e.target.value = '';
+  }
+
+  function onCSVPaste(text) {
+    processImportText(text);
+  }
+
+  function processImportText(text) {
+    try {
+      importPlayers = parseRosterCSV(text);
+    } catch {
+      importPlayers = [];
+    }
+
+    const preview  = document.getElementById('import-preview');
+    const modeWrap = document.getElementById('import-mode-wrap');
+    const btnImport = document.getElementById('btn-import');
+
+    if (!importPlayers.length) {
+      preview.classList.add('hidden');
+      modeWrap.classList.add('hidden');
+      btnImport.disabled = true;
+      return;
+    }
+
+    const n = importPlayers.length;
+    preview.textContent = `Se importarán ${n} jugador${n !== 1 ? 'es' : ''}`;
+    preview.classList.remove('hidden');
+    modeWrap.classList.remove('hidden');
+    btnImport.disabled = false;
+  }
+
+  function setImportMode(mode) {
+    importMode = mode;
+    document.getElementById('mode-add').classList.toggle('active',     mode === 'add');
+    document.getElementById('mode-replace').classList.toggle('active', mode === 'replace');
+  }
+
+  function doImport() {
+    if (!importPlayers.length) return;
+
+    if (importMode === 'replace') {
+      getRoster().forEach(p => deletePlayer(p.id));
+      importPlayers.forEach(p => savePlayer(p));
+    } else {
+      const existingNums = new Set(getRoster().map(p => String(p.number)));
+      importPlayers.forEach(p => {
+        if (!existingNums.has(String(p.number))) savePlayer(p);
+      });
+    }
+
+    allPlayers = getRoster();
+    applyFilters();
+    updateCounter();
+    const n = importPlayers.length;
+    closeImportPanel();
+    showToast(`${n} jugadores importados ✓`);
+  }
+
+  /* ─────────────────────────────────────────────
+     NAVIGATION
+  ───────────────────────────────────────────── */
+  function goCampo() {
+    const game = getCurrentGame();
+    if (game) {
+      location.href = `grade.html?game=${game.id}`;
+    } else {
+      const games = getGames();
+      if (games.length) {
+        setCurrentGame(games[0].id);
+        location.href = `grade.html?game=${games[0].id}`;
+      } else {
+        showToast('Crea un partido primero');
+      }
+    }
+  }
+
+  function goReport() {
+    const games = getGames();
+    if (!games.length) { showToast('Sin partidos para reportar'); return; }
+    const last = games.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
+    location.href = `report.html?game=${last.id}`;
+  }
+
+  /* ─────────────────────────────────────────────
+     TOAST
+  ───────────────────────────────────────────── */
+  let _tt;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(_tt);
+    _tt = setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  /* ─────────────────────────────────────────────
+     HELPERS
+  ───────────────────────────────────────────── */
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  </script>
+
+</body>
+</html>
