@@ -995,8 +995,8 @@ function getPositionUnit(label) {
   const ofeLabels = ['QB','RB','FB','WR','TE','OL','C','LT','RT','LG','RG','SLOT','H','F','Y','Z','X','T'];
   const defLabels = ['DL','DE','DT','NT','LB','ILB','OLB','MLB','CB','S','FS','SS','DB','MIKE','WILL','SAM'];
   const up = label ? label.toUpperCase() : '';
-  for (const l of ofeLabels) { if (up.startsWith(l)) return 'OFE'; }
   for (const l of defLabels) { if (up.startsWith(l)) return 'DEF'; }
+  for (const l of ofeLabels) { if (up.startsWith(l)) return 'OFE'; }
   return null;
 }
 
@@ -1176,6 +1176,7 @@ function renderRightPanel() {
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">Posición: <strong style="color:var(--text-primary)">${esc(pos ? pos.label : selectedChipId)}</strong></div>
         <div style="font-size:14px;color:var(--text-muted);margin-bottom:16px">Sin jugador asignado</div>
         <button class="btn btn-primary w-full" onclick="openPlayerModal('${selectedChipId}')">Asignar jugador</button>
+        <button class="btn btn-danger w-full" style="margin-top:8px" onclick="deletePosition('${selectedChipId}')">🗑 Eliminar posición</button>
       </div>`;
     return;
   }
@@ -1349,6 +1350,18 @@ function onTouchEnd(e) {
 /* ═══════════════════════════════════════════════════
    PLAYER MODAL
 ═══════════════════════════════════════════════════ */
+function deletePosition(positionId) {
+  const pos = currentPositions.find(p => p.id === positionId);
+  const label = pos ? pos.label : 'esta posición';
+  if (!confirm(`¿Eliminar "${label}" del campo?`)) return;
+  currentPositions = currentPositions.filter(p => p.id !== positionId);
+  delete currentLineup[positionId];
+  saveCurrentPlayState();
+  selectedChipId = null;
+  renderField();
+  renderRightPanel();
+}
+
 function openPlayerModal(positionId) {
   openModalPosId = positionId;
   const pos = currentPositions.find(p => p.id === positionId);
@@ -1380,9 +1393,12 @@ function filterPlayers(query) {
 
   let html = '';
   for (const unit of units) {
-    const players = roster.filter(p => p.unit === unit && (
-      !q || p.name.toLowerCase().includes(q) || String(p.number).includes(q)
-    ));
+    const players = roster.filter(p => {
+      const playerUnit = String(p.unit || '').trim().toUpperCase();
+      return playerUnit === unit && (
+        !q || p.name.toLowerCase().includes(q) || String(p.number).includes(q)
+      );
+    });
     if (!players.length) continue;
 
     html += `<div class="modal-unit-header">${getUnitLabel(unit)}</div>`;
